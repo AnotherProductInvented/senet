@@ -9,8 +9,7 @@
       margin: 0; padding: 0;
       background: #fafafa;
       font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
       align-items: center;
     }
     h1 {
@@ -30,14 +29,13 @@
     /* Left & Right panels */
     #leftPanel, #rightPanel {
       min-width: 150px;
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
       align-items: center;
     }
     /* Game container (single 10px border) */
     #gameContainer {
       position: relative;
-      width: 720px; /* Enough for a 600px board plus padding */
+      width: 720px;
       max-width: 100%;
       padding: 20px;
       box-sizing: border-box;
@@ -196,11 +194,12 @@
     <div id="gameOverScreen" class="overlayScreen">
       <h2 id="gameOverText"></h2>
       <button id="gameOverNewGameBtn">New Game</button>
-      <p>Press M to return to the Main Menu.</p>
+      <p>Press "M" to return to the Main Menu.</p>
     </div>
     <!-- The Senet board canvas (600×180) -->
     <canvas id="gameCanvas" width="600" height="180"></canvas>
   </div>
+
   <!-- Right Panel: Move History -->
   <div id="rightPanel">
     <div id="moveHistory">Moves:<br></div>
@@ -212,7 +211,7 @@
 
 <script>
 /***************************************************************
- * 0) Chroma-Key Helper: Remove pure white background from images
+ * 0) Chroma-Key Helper: Remove pure white from images
  ***************************************************************/
 function removeColorFromImage(originalImg, colorToRemove, callback) {
   if (!originalImg.complete) {
@@ -295,7 +294,7 @@ const customDiceDiv = document.getElementById("customDice");
 
 /***************************************************************
  * 4) Instructions (4 Pages)
- * Only Page 4 displays "Press M to return to the Main Menu."
+ * Only Page 4 displays "Press 'M' to return to the Main Menu."
  ***************************************************************/
 const instructionsPages = [
 `Page 1 – General Gameplay:
@@ -313,20 +312,20 @@ Illegal Moves:
 
 • If you land on a square occupied by your opponent’s unprotected piece, you swap places.
 • Protected pieces (two in a row) cannot be captured.
-• Blockades: If three or more pieces of the same color occupy consecutive squares along the path, they form a blockade that prevents any piece from moving past them.`,
+• Blockades: If three or more pieces of the same color occupy consecutive squares along the movement path, that blockade prevents any piece from moving past those squares.`,
 `Page 3 – Special Squares (Part 1):
 
 • Square 15 (Boat Icon) → Safe Zone (stacking allowed; cannot be captured).
 • Square 26 (Golden Circle, Green Tile) → You must land on this square exactly to advance past it.
 • Square 27 (Water Tile) → Landing here sends your piece back to square 15.
    - If square 15 is empty, your piece moves there.
-   - If square 15 is occupied by your own piece, you stack.
+   - If square 15 is occupied by your own piece, your piece stacks.
    - If square 15 is occupied by an opponent’s piece, you swap.
-   - Exception: If the opponent has a protected pair on squares 15–16, you cannot move there.`,
+   - Exception: If the opponent has a protected pair on squares 14–15 or 15–16, you cannot move there.`,
 `Page 4 – Special Squares (Part 2) & Winning:
 
 • Squares 28 & 29 (Green Tiles) → Safe Zones (cannot be captured).
-• Square 30 (Exit Tile) → If a piece lands exactly here, it is removed from the board and counts toward winning.
+• Square 30 (Exit Tile) → Landing exactly here removes your piece from the board.
 • Winning: The first player to remove all 5 pieces wins.
 If no legal move is available, your turn is forfeited.
 
@@ -403,67 +402,19 @@ function rollCustomDice() {
 }
 
 /***************************************************************
- * Blockade Rule – Occupancy Helper
- ***************************************************************/
-function getOccupancy() {
-  let occ = {};
-  // For each piece on the board (squares 0-29), record its color.
-  for (let pos of conesPieces) {
-    if (pos >= 0 && pos < 30) {
-      occ[pos] = "cones";
-    }
-  }
-  for (let pos of spoolsPieces) {
-    if (pos >= 0 && pos < 30) {
-      occ[pos] = "spools";
-    }
-  }
-  return occ;
-}
-/* Check the movement path from piecePos to targetPos for blockades.
-   A blockade is three or more contiguous squares (in the senet path)
-   occupied by pieces of the same color. If such a blockade exists between
-   the start and target, the move is illegal.
-*/
-function isPathBlocked(piecePos, targetPos) {
-  let occ = getOccupancy();
-  let startIndex = senetPath.indexOf(piecePos);
-  let targetIndex = senetPath.indexOf(targetPos);
-  if (startIndex === -1 || targetIndex === -1) return false;
-  let contiguous = 0;
-  let lastColor = null;
-  for (let i = startIndex + 1; i <= targetIndex; i++) {
-    let sq = senetPath[i]; // board square index
-    let color = occ[sq] || null;
-    if (color && color === lastColor) {
-      contiguous++;
-    } else {
-      contiguous = color ? 1 : 0;
-      lastColor = color;
-    }
-    if (contiguous >= 3) return true;
-  }
-  return false;
-}
-
-/***************************************************************
- * 8) Movement & Basic Rules (including blockade check)
+ * 8) Movement & Rules (including blockade check)
  ***************************************************************/
 function getValidMove(piecePos, diceValue) {
   if (diceValue === 0) return null;
   let newPos = piecePos + diceValue;
   // Must land exactly on square 26 if you're behind it.
-  if (piecePos < 26 && newPos > 26 && newPos !== 26) {
-    return null;
-  }
+  if (piecePos < 26 && newPos > 26 && newPos !== 26) return null;
   if (newPos > 30) {
     newPos = 30 - diceValue;
     if (newPos < 0) return null;
   }
-  // Check blockade: if any blockade exists in the path from piecePos to newPos, move is illegal.
-  if (isPathBlocked(piecePos, newPos)) {
-    return null;
-  }
+  // Check for blockade along the path.
+  if (isPathBlocked(piecePos, newPos)) return null;
   return newPos;
 }
 function canLandOn(pos, color) {
@@ -488,7 +439,8 @@ function getMoveOptions(diceValue, color) {
 }
 function isOpponentProtectedAt15(color) {
   let opp = (color === "cones") ? spoolsPieces : conesPieces;
-  return opp.includes(14) && opp.includes(15);
+  // Check if opponent has a contiguous pair on either squares 14-15 or 15-16.
+  return (opp.includes(13) && opp.includes(14)) || (opp.includes(14) && opp.includes(15));
 }
 function isProtected(pos, color) {
   let opp = (color === "cones") ? spoolsPieces : conesPieces;
@@ -503,7 +455,7 @@ function executeMove(pieceIndex, toPos, color) {
   let opp = (color === "cones") ? spoolsPieces : conesPieces;
   let fromPos = own[pieceIndex];
   if (toPos === null) {
-    showTemporaryMessage("Illegal move: overshoot or skipping square 26, or path is blocked!");
+    showTemporaryMessage("Illegal move: overshoot, skipping square 26, or path is blocked!");
     return false;
   }
   if (toPos < 30 && toPos !== 14 && own.includes(toPos)) {
@@ -519,10 +471,10 @@ function executeMove(pieceIndex, toPos, color) {
     opp[oppIdx] = fromPos;
   }
   own[pieceIndex] = toPos;
-  // Special Rule for Square 27 (Water Tile):
+  // Rule for Square 27 (Water Tile):
   if (toPos === 27) {
     if (isOpponentProtectedAt15(color)) {
-      showTemporaryMessage("Opponent has a protected pair on squares 15–16. Can't move there!");
+      showTemporaryMessage("Opponent has a protected pair on squares 14–15 or 15–16. Can't move there!");
       own[pieceIndex] = fromPos;
       return false;
     }
@@ -609,14 +561,9 @@ function drawBoard() {
 }
 function getPieceCoords(color, pos) {
   if (pos >= 0 && pos < 30) {
-    let sqIdx = senetPath.indexOf(pos);
-    // If the piece's board square is not directly in the path (it should be),
-    // we search for it:
-    if (sqIdx === -1) {
-      // fallback: find first occurrence
-      sqIdx = senetPath.findIndex(s => s === pos);
-    }
-    let sq = boardSquares[sqIdx];
+    let indexInPath = senetPath.indexOf(pos);
+    if (indexInPath === -1) indexInPath = pos;
+    let sq = boardSquares[indexInPath];
     return { x: sq.x + sq.w/2, y: sq.y + sq.h/2 };
   }
   if (pos === 30) {
