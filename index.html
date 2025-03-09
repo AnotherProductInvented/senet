@@ -35,7 +35,7 @@
     /* Game container (single 10px border) */
     #gameContainer {
       position: relative;
-      width: 720px;
+      width: 720px; /* 600px board + padding */
       max-width: 100%;
       padding: 20px;
       box-sizing: border-box;
@@ -49,7 +49,7 @@
       background: #f5f2e8;
       margin: auto;
     }
-    /* Overlays (with thick double borders) */
+    /* Overlays (thick double borders) */
     .overlayScreen {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -211,7 +211,7 @@
 
 <script>
 /***************************************************************
- * 0) Chroma-Key Helper: Remove pure white from images
+ * 0) Chroma-Key Helper: Remove pure white background from images
  ***************************************************************/
 function removeColorFromImage(originalImg, colorToRemove, callback) {
   if (!originalImg.complete) {
@@ -244,7 +244,7 @@ function removeColorFromImage(originalImg, colorToRemove, callback) {
  ***************************************************************/
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const squareSize = 60;
+const squareSize = 60; // 60px squares → 600×180 board
 const rows = 3, cols = 10;
 let boardSquares = [];
 for (let r = 0; r < rows; r++) {
@@ -268,13 +268,13 @@ for (let i = 2 * cols; i < 3 * cols; i++) {
  * 2) Game State
  ***************************************************************/
 let gameState = "menu";
-let humanColor = null;
+let humanColor = null; // "cones" or "spools"
 let aiDifficulty = "easy";
 const NUM_PIECES = 5;
 let conesPieces = [], spoolsPieces = [];
 let lastMove = null;
 let moveHistory = [];
-let currentTurn = null;
+let currentTurn = null; // "cones" or "spools"
 let currentDiceRoll = 0;
 let diceRolled = false;
 let extraTurn = false;
@@ -294,6 +294,7 @@ const customDiceDiv = document.getElementById("customDice");
 
 /***************************************************************
  * 4) Instructions (4 Pages)
+ * Only Page 4 displays "Press 'M' to return to the Main Menu."
  ***************************************************************/
 const instructionsPages = [
 `Page 1 – General Gameplay:
@@ -316,12 +317,11 @@ Illegal Moves:
 
 • Square 15 (Boat Icon) → Safe Zone (stacking allowed; cannot be captured).
 • Square 26 (Golden Circle, Green Tile) → You must land on this square exactly to advance.
-• Square 27 (Water Tile) → Landing here sends your piece back to square 15.
-   - If square 15 is empty, your piece moves there.
-   - If square 15 is occupied by your own piece, your piece stacks.
+• Square 27 (Water Tile) → When a piece lands here, it is moved to square 15.
+   - If square 15 is empty, the piece moves there.
+   - If square 15 is occupied by your own piece, the piece stacks.
    - If square 15 is occupied by an opponent’s piece, you swap.
-   - Exception: If the opponent has a protected pair on squares 14–15 or 15–16, you cannot move there.
-`,
+   - Exception: If the opponent has a protected pair on squares 14–15 or 15–16, the move is illegal.`,
 `Page 4 – Special Squares (Part 2) & Winning:
 
 • Squares 28 & 29 (Green Tiles) → Safe Zones (cannot be captured).
@@ -381,6 +381,8 @@ boatIcon.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcm
  * 6) Initialization
  ***************************************************************/
 function initPieces() {
+  // Cones on squares 1,3,5,7,9 (indices 0,2,4,6,8)
+  // Spools on squares 2,4,6,8,10 (indices 1,3,5,7,9)
   conesPieces = [0, 2, 4, 6, 8];
   spoolsPieces = [1, 3, 5, 7, 9];
   lastMove = null;
@@ -437,18 +439,20 @@ function isPathBlocked(piecePos, targetPos) {
 function getValidMove(piecePos, diceValue) {
   if (diceValue === 0) return null;
   let newPos = piecePos + diceValue;
+  // Must land exactly on square 26 if behind it.
   if (piecePos < 26 && newPos > 26 && newPos !== 26) return null;
   if (newPos > 30) {
     newPos = 30 - diceValue;
     if (newPos < 0) return null;
   }
+  // Check blockade along the movement path.
   if (isPathBlocked(piecePos, newPos)) return null;
   return newPos;
 }
 function canLandOn(pos, color) {
   if (pos < 30 && pos >= 0) {
     let own = (color === "cones") ? conesPieces : spoolsPieces;
-    if (pos === 14) return true;
+    if (pos === 14) return true; // Square 15 (index 14) → stacking allowed
     if (own.includes(pos)) return false;
   }
   return true;
@@ -467,6 +471,7 @@ function getMoveOptions(diceValue, color) {
 }
 function isOpponentProtectedAt15(color) {
   let opp = (color === "cones") ? spoolsPieces : conesPieces;
+  // Check for a contiguous pair on squares 14-15 or 15-16 (0-indexed: 13-14 or 14-15)
   return ((opp.includes(13) && opp.includes(14)) || (opp.includes(14) && opp.includes(15)));
 }
 function isProtected(pos, color) {
@@ -482,7 +487,7 @@ function executeMove(pieceIndex, toPos, color) {
   let opp = (color === "cones") ? spoolsPieces : conesPieces;
   let fromPos = own[pieceIndex];
   if (toPos === null) {
-    showTemporaryMessage("Illegal move: overshoot, skipping square 26, path blocked, or not landing exactly on square 26!");
+    showTemporaryMessage("Illegal move: overshoot, skipping square 26, path blocked, or not landing exactly on 26!");
     return false;
   }
   if (toPos < 30 && toPos !== 14 && own.includes(toPos)) {
@@ -498,7 +503,7 @@ function executeMove(pieceIndex, toPos, color) {
     opp[oppIdx] = fromPos;
   }
   own[pieceIndex] = toPos;
-  // Square 27 rule:
+  // Rule for Square 27 (Water Tile): when a piece lands on 27, it moves to square 15 (index 14)
   if (toPos === 27) {
     if (isOpponentProtectedAt15(color)) {
       showTemporaryMessage("Opponent has a protected pair on squares 14–15 or 15–16. Can't move there!");
@@ -523,6 +528,7 @@ function executeMove(pieceIndex, toPos, color) {
   addMoveToHistory(`${(color === "cones" ? "Cones" : "Spools")} moved from ${fromPos + 1} to ${own[pieceIndex] + 1}`);
   extraTurn = false;
   nextPlayer = (color === "cones") ? "spools" : "cones";
+  // Check if the piece has reached square 30 (Exit Tile)
   let finished = own.filter(p => p === 30).length;
   if (finished === NUM_PIECES) {
     gameOverText.textContent = (color === humanColor) ? "You Win!" : "You Lose!";
@@ -810,7 +816,7 @@ function startPlaying() {
   hideAllScreens();
   gameState = "playing";
   initPieces();
-  currentTurn = "cones";
+  currentTurn = "cones"; // Cones always start
   diceRolled = false; currentDiceRoll = 0; extraTurn = false;
   addMoveToHistory("Cones Turn! Roll dice...");
   showTemporaryMessage("Cones Turn! Roll dice...");
