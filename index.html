@@ -1,1 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Senet Game</title>
+  <style>
+    /* Basic layout */
+    body {
+      margin: 0;
+      padding: 0;
+      background: #fafafa;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin: 1rem 0 0.5rem;
+      text-align: center;
+      font-family: "Papyrus", cursive, serif;
+    }
+    /* Main wrapper */
+    #gameWrapper {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 20px;
+      margin: 20px;
+      width: 100%;
+    }
+    /* Left & Right panels */
+    #leftPanel, #rightPanel {
+      min-width: 150px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    /* Game container with single border */
+    #gameContainer {
+      position: relative;
+      width: 720px; /* Enough for a 600px board plus padding */
+      max-width: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+      background: #fff;
+      border: 10px solid #8b4513; /* single border */
+      border-radius: 6px;
+      min-height: 500px; /* enough vertical space for instructions */
+    }
+    canvas {
+      display: block;
+      background: #f5f2e8;
+      margin: auto;
+    }
+    /* Overlays (with a thick border) */
+    .overlayScreen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: none;
+      background: rgba(255,255,255,0.95);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      z-index: 10;
+      font-family: "Papyrus", cursive, serif;
+      font-size: 24px;
+      color: #8b4513;
+      border: 20px double #8b4513;
+      border-radius: 6px;
+      padding: 20px;
+      box-sizing: border-box;
+      min-height: 500px;
+    }
+    button {
+      font-size: 18px;
+      margin: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-family: "Papyrus", cursive, serif;
+    }
+    /* Dice & move history */
+    #diceRollDisplay {
+      font-size: 24px;
+      padding: 10px;
+      border: 2px solid #8b4513;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+    #rollDiceBtn {
+      font-size: 16px;
+      padding: 6px 10px;
+      margin: 4px;
+    }
+    /* Custom dice overlay */
+    #customDice {
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      border: 4px solid #8b4513;
+      border-radius: 6px;
+      padding: 20px;
+      z-index: 1600;
+      display: none;
+    }
+    /* Move history */
+    #moveHistory {
+      font-size: 16px;
+      padding: 10px;
+      border: 2px solid #8b4513;
+      border-radius: 6px;
+      background: #fff;
+      max-height: 400px;
+      overflow-y: auto;
+      text-align: left;
+      width: 250px;
+    }
+    /* Temporary messages (2 seconds) */
+    #diceMessageOverlay {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      padding: 10px 20px;
+      background: rgba(255,255,255,0.9);
+      border: 2px solid #8b4513;
+      border-radius: 6px;
+      font-family: "Papyrus", cursive, serif;
+      font-size: 28px;
+      color: #8b4513;
+      display: none;
+      z-index: 1500;
+    }
+    /* Instructions navigation */
+    #instructionsNav {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    #logo {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      max-width: 100px;
+      z-index: 2000;
+    }
+  </style>
+</head>
+<body>
+
+<div id="gameWrapper">
+  <!-- Left Panel: Dice & Custom Dice -->
+  <div id="leftPanel">
+    <div id="diceRollDisplay">Dice: -</div>
+    <button id="rollDiceBtn">Roll Dice</button>
+    <div id="customDice">
+      <p>Choose a value:</p>
+      <button class="diceChoice" data-value="1">1</button>
+      <button class="diceChoice" data-value="2">2</button>
+      <button class="diceChoice" data-value="3">3</button>
+      <button class="diceChoice" data-value="4">4</button>
+      <button class="diceChoice" data-value="5">5</button>
+    </div>
+  </div>
+
+  <!-- Center Panel: Game Container -->
+  <div id="gameContainer">
+    <div id="diceMessageOverlay"></div>
+
+    <!-- Menu Screen -->
+    <div id="menuScreen" class="overlayScreen" style="display:flex;">
+      <h1>Senet</h1>
+      <button id="newGameBtn">New Game</button>
+      <button id="instructionsBtn">Instructions</button>
+    </div>
+
+    <!-- Instructions Screen (3 pages) -->
+    <div id="instructionsScreen" class="overlayScreen">
+      <p id="instructionsContent"></p>
+      <div id="instructionsNav">
+        <button id="instructionsPrevBtn">Previous</button>
+        <button id="instructionsNextBtn">Next</button>
+      </div>
+      <p style="margin-top:20px;">Press M to return to the Main Menu.</p>
+    </div>
+
+    <!-- Side Selection Screen -->
+    <div id="sideScreen" class="overlayScreen">
+      <p>Choose your side:</p>
+      <button id="conesBtn">Cones (Player 1)</button>
+      <button id="spoolsBtn">Spools (Player 2)</button>
+    </div>
+
+    <!-- Difficulty Selection Screen -->
+    <div id="difficultyScreen" class="overlayScreen">
+      <p>Select AI Difficulty:</p>
+      <button id="easyBtn">Easy</button>
+      <button id="mediumBtn">Medium</button>
+      <button id="hardBtn">Hard</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="overlayScreen">
+      <h2 id="gameOverText"></h2>
+      <button id="gameOverNewGameBtn">New Game</button>
+      <p>Press M to return to the Main Menu.</p>
+    </div>
+
+    <!-- The Senet board canvas (3×10 => 600×180) -->
+    <canvas id="gameCanvas" width="600" height="180"></canvas>
+  </div>
+
+  <!-- Right Panel: Move History -->
+  <div id="rightPanel">
+    <div id="moveHistory">Moves:<br></div>
+  </div>
+</div>
+
+<!-- If you have a logo, place it here -->
+<img id="logo" src="logo.png" alt="Logo">
+
+<script>
+/***********************************
+ * 1) Canvas & Board
+ ***********************************/
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const squareSize = 60;   // 60 px squares => 600x180
+const rows = 3, cols = 10;
+const boardSquares = [];
+for (let r=0; r<rows; r++){
+  for (let c=0; c<cols; c++){
+    boardSquares.push({ x: c*squareSize, y: r*squareSize, w: squareSize, h: squareSize });
+  }
+}
+/* Serpentine path */
+let senetPath = [];
+for(let i=0;i<cols;i++){ senetPath.push(i); }
+for(let i=2*cols-1;i>=cols;i--){ senetPath.push(i); }
+for(let i=2*cols;i<3*cols;i++){ senetPath.push(i); }
+
+/***********************************
+ * 2) Game State
+ ***********************************/
+let gameState="menu";
+let humanColor=null;   // "cones" or "spools"
+let aiDifficulty="easy";
+const NUM_PIECES=5;
+let conesPieces=[], spoolsPieces=[];
+let lastMove=null;
+let moveHistory=[];
+let currentTurn=null; // "cones" or "spools"
+let currentDiceRoll=0;
+let diceRolled=false;
+let extraTurn=false;
+let nextPlayer=null;
+
+/***********************************
+ * 3) Overlays & DOM
+ ***********************************/
+const menuScreen = document.getElementById("menuScreen");
+const instructionsScreen = document.getElementById("instructionsScreen");
+const sideScreen = document.getElementById("sideScreen");
+const difficultyScreen = document.getElementById("difficultyScreen");
+const gameOverScreen = document.getElementById("gameOverScreen");
+const gameOverText = document.getElementById("gameOverText");
+const diceMessageOverlay = document.getElementById("diceMessageOverlay");
+const customDiceDiv = document.getElementById("customDice");
+
+/* 4) Instructions with 3 pages */
+const instructionsPages = [
+  `Each player has 5 pawns. The dice shows 1-5.
+Player 1 (Cones) and Player 2 (Spools) are chosen by you.
+Cones always start first.
+Take turns rolling and moving one pawn forward.
+If you land on your own pawn, it's illegal.
+If you land on an opponent's pawn (not protected), you swap.`,
+  `Special squares:
+• Square 15: Has a boat icon; safe zone (stacking allowed).
+• Square 26: Must be landed on exactly before exiting; marked in green with a golden circle.
+• Square 27: Water square – if you land here, your pawn goes back to square 15.`,
+  `Squares 28 and 29: Green safe squares.
+Square 30: Must be landed on exactly to remove your pawn; overshooting is illegal.
+If the opponent has a protected pair on squares 15–16, you can't land on 27.
+Protection: Two adjacent pawns are safe; three or more form a blockade.
+First to remove all pawns wins.
+Press M to return to the Main Menu.`
+];
+let currentInstructionsPage=0;
+const instructionsContent = document.getElementById("instructionsContent");
+const instructionsPrevBtn = document.getElementById("instructionsPrevBtn");
+const instructionsNextBtn = document.getElementById("instructionsNextBtn");
+function updateInstructions(){
+  instructionsContent.textContent = instructionsPages[currentInstructionsPage];
+  instructionsPrevBtn.style.display=(currentInstructionsPage===0)?"none":"inline-block";
+  instructionsNextBtn.style.display=(currentInstructionsPage===instructionsPages.length-1)?"none":"inline-block";
+}
+instructionsPrevBtn.onclick=()=>{
+  if(currentInstructionsPage>0){
+    currentInstructionsPage--;
+    updateInstructions();
+  }
+};
+instructionsNextBtn.onclick=()=>{
+  if(currentInstructionsPage<instructionsPages.length-1){
+    currentInstructionsPage++;
+    updateInstructions();
+  }
+};
+
+/***********************************
+ * 5) Load external images for Cones & Spools
+ * Must be in same folder if you want to avoid CORS on GitHub Pages
+ ***********************************/
+const conesImg = new Image();
+conesImg.src = "cones.png";  // same folder
+const spoolsImg = new Image();
+spoolsImg.src = "spools.png";  // same folder
+
+// boat icon is inline
+const boatIcon = new Image();
+boatIcon.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHBhdGggZD0iTTQsNDBMNjAsNDBMNTIsNjBMMCwxNjBaIiBmaWxsPSIjQjg0NTEzIi8+PHBvbHlnb24gcG9pbnRzPSIzMiw0IDMyLDQwIDE2LDQwIiBmaWxsPSIjZmZmZiIvPjxwb2x5Z29uIHBvaW50cz0iMzIsNCAzMiw0MCA0OCw0MCIgZmlsbD0iI2ZmZiIvPjxsaW5lIHgxPSIzMiIgeTE9IjQiIHgyPSIzMiIgeTI9IjQwIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==';
+
+/***********************************
+ * 6) Initialization
+ ***********************************/
+function initPieces(){
+  conesPieces=[0,2,4,6,8];
+  spoolsPieces=[1,3,5,7,9];
+  lastMove=null;
+  moveHistory=[];
+  updateMoveHistoryDisplay();
+}
+
+/***********************************
+ * 7) Dice
+ ***********************************/
+const allowedDice=[1,2,3,4,5];
+function rollCustomDice(){
+  let idx=Math.floor(Math.random()*allowedDice.length);
+  return allowedDice[idx];
+}
+
+/***********************************
+ * 8) Movement & Basic Rules
+ ***********************************/
+// overshoot => illegal
+// skipping #26 => illegal
+function getValidMove(piecePos,diceValue){
+  if(diceValue===0)return null;
+  let newPos=piecePos+diceValue;
+  if(piecePos<26 && newPos>26 && newPos!==26){
+    return null;
+  }
+  if(newPos>30)return null;
+  return newPos;
+}
+function canLandOn(pos,color){
+  if(pos<30&&pos>=0){
+    let own=(color==="cones")?conesPieces:spoolsPieces;
+    if(pos===14)return true; // #15 => stacking
+    if(own.includes(pos))return false;
+  }
+  return true;
+}
+function getMoveOptions(diceValue,color){
+  let own=(color==="cones")?conesPieces:spoolsPieces;
+  let opts=[];
+  own.forEach((p,i)=>{
+    if(p===30)return;
+    let np=getValidMove(p,diceValue);
+    if(np===null)return;
+    if(!canLandOn(np,color))return;
+    opts.push({pieceIndex:i, fromPos:p, toPos:np});
+  });
+  return opts;
+}
+function isOpponentProtectedAt15(color){
+  let opp=(color==="cones")?spoolsPieces:conesPieces;
+  return opp.includes(14)&&opp.includes(15);
+}
+function isProtected(pos,color){
+  let opp=(color==="cones")?spoolsPieces:conesPieces;
+  return opp.includes(pos-1)||opp.includes(pos+1);
+}
+
+/***********************************
+ * 9) Execute Move
+ ***********************************/
+function executeMove(pieceIndex,toPos,color){
+  let own=(color==="cones")?conesPieces:spoolsPieces;
+  let opp=(color==="cones")?spoolsPieces:conesPieces;
+  let fromPos=own[pieceIndex];
+  if(toPos===null){
+    showTemporaryMessage("Illegal move: overshoot or skipping #26!");
+    return false;
+  }
+  if(toPos<30 && toPos!==14 && own.includes(toPos)){
+    showTemporaryMessage("Illegal: your own pawn is there!");
+    return false;
+  }
+  if(toPos<30 && opp.includes(toPos)){
+    if(isProtected(toPos,color)){
+      showTemporaryMessage("Opponent's pawn is protected!");
+      return false;
+    }
+    let oppIdx=opp.indexOf(toPos);
+    opp[oppIdx]=fromPos;
+  }
+  own[pieceIndex]=toPos;
+  if(toPos===27){
+    if(isOpponentProtectedAt15(color)){
+      showTemporaryMessage("Opponent has a protected pair at #15-16. Can't land!");
+      own[pieceIndex]=fromPos;
+      return false;
+    }
+    let occupant15Opp=opp.indexOf(14);
+    let occupant15Own=own.indexOf(14);
+    if(occupant15Opp>=0){
+      opp[occupant15Opp]=27;
+      own[pieceIndex]=14;
+      addMoveToHistory(`${(color==="cones"?"Cones":"Spools")} swapped with occupant at #15`);
+    } else if(occupant15Own>=0){
+      own[pieceIndex]=14;
+      addMoveToHistory(`${(color==="cones"?"Cones":"Spools")} stacked on own pawn at #15`);
+    } else {
+      own[pieceIndex]=14;
+      addMoveToHistory(`${(color==="cones"?"Cones":"Spools")} landed on water => moved to #15`);
+    }
+  }
+  lastMove={fromPos,toPos,color,pieceIndex};
+  addMoveToHistory(`${(color==="cones"?"Cones":"Spools")} moved from ${fromPos+1} to ${own[pieceIndex]+1}`);
+  extraTurn=false;
+  nextPlayer=(color==="cones")?"spools":"cones";
+  let finished=own.filter(p=>p===30).length;
+  if(finished===NUM_PIECES){
+    gameOverText.textContent=(color===humanColor)?"You Win!":"You Lose!";
+    addMoveToHistory(`${(color==="cones"?"Cones":"Spools")} wins!`);
+    showGameOver();
+    return true;
+  }
+  return true;
+}
+
+/***********************************
+ * 10) Drawing
+ ***********************************/
+function drawBoard(){
+  ctx.clearRect(0,0,600,180);
+  for(let i=0;i<senetPath.length;i++){
+    let sqIdx=senetPath[i];
+    let x=boardSquares[sqIdx].x, y=boardSquares[sqIdx].y;
+    let w=boardSquares[sqIdx].w, h=boardSquares[sqIdx].h;
+    let num=i+1;
+    let grad;
+    if([26,28,29].includes(num)){
+      grad=ctx.createLinearGradient(x,y,x+w,y+h);
+      grad.addColorStop(0,"#66ff66");
+      grad.addColorStop(1,"#009900");
+      ctx.fillStyle=grad;
+      ctx.fillRect(x,y,w,h);
+      ctx.strokeStyle="#000"; ctx.lineWidth=1.5;
+      ctx.strokeRect(x,y,w,h);
+      if(num===26){
+        // golden circle
+        ctx.save();
+        ctx.strokeStyle="#ffcc00";
+        ctx.lineWidth=4;
+        ctx.beginPath();
+        ctx.arc(x+w/2,y+h/2,Math.min(w,h)/2-6,0,2*Math.PI);
+        ctx.stroke();
+        ctx.restore();
+      }
+    } else if(num===27){
+      grad=ctx.createLinearGradient(x,y,x+w,y+h);
+      grad.addColorStop(0,"#66ccff");
+      grad.addColorStop(1,"#003399");
+      ctx.fillStyle=grad;
+      ctx.fillRect(x,y,w,h);
+      ctx.strokeStyle="#000"; ctx.lineWidth=1.5;
+      ctx.strokeRect(x,y,w,h);
+    } else {
+      grad=ctx.createLinearGradient(x,y,x+w,y+h);
+      grad.addColorStop(0,"#f4e2c0");
+      grad.addColorStop(1,"#c5a36c");
+      ctx.fillStyle=grad;
+      ctx.fillRect(x,y,w,h);
+      ctx.strokeStyle="#000"; ctx.lineWidth=1.5;
+      ctx.strokeRect(x,y,w,h);
+      if(num===15){
+        ctx.drawImage(boatIcon,x+w/2-20,y+h/2-20,40,40);
+      }
+    }
+  }
+}
+function getPieceCoords(color,pos){
+  if(pos>=0 && pos<30){
+    let sqIdx=senetPath[pos];
+    let sq=boardSquares[sqIdx];
+    return { x: sq.x+sq.w/2, y: sq.y+sq.h/2 };
+  }
+  if(pos===30){
+    return { x: boardSquares[senetPath[senetPath.length-1]].x+90, y:(color==="cones")?60:120 };
+  }
+  return { x:0,y:0 };
+}
+function drawPieces(){
+  // Cones
+  conesPieces.forEach(pos=>{
+    if(pos<0||pos===30)return;
+    let c=getPieceCoords("cones",pos);
+    ctx.drawImage(conesImg,c.x-24,c.y-24,48,48);
+  });
+  // Spools
+  spoolsPieces.forEach(pos=>{
+    if(pos<0||pos===30)return;
+    let c=getPieceCoords("spools",pos);
+    ctx.drawImage(spoolsImg,c.x-24,c.y-24,48,48);
+  });
+}
+function redrawPlayScreen(){
+  drawBoard();
+  drawPieces();
+}
+
+/***********************************
+ * 11) Temporary Messages (2 sec)
+ ***********************************/
+function showTemporaryMessage(msg){
+  diceMessageOverlay.textContent=msg;
+  diceMessageOverlay.style.display="block";
+  setTimeout(()=>{diceMessageOverlay.style.display="none";},2000);
+}
+
+/***********************************
+ * 12) Move History
+ ***********************************/
+let moveHistoryDiv=document.getElementById("moveHistory");
+function addMoveToHistory(txt){
+  moveHistory.push(txt);
+  if(moveHistory.length>5){
+    moveHistory.shift();
+  }
+  updateMoveHistoryDisplay();
+}
+function updateMoveHistoryDisplay(){
+  moveHistoryDiv.innerHTML="Moves:<br>"+moveHistory.join("<br>");
+}
+
+/***********************************
+ * 13) Human Turn: Custom Dice
+ ***********************************/
+function humanRollDice(){
+  if(gameState!=="playing")return;
+  if(currentTurn!==humanColor)return;
+  if(diceRolled)return;
+  customDiceDiv.style.display="block";
+}
+document.querySelectorAll(".diceChoice").forEach(btn=>{
+  btn.addEventListener("click",function(){
+    let val=parseInt(this.getAttribute("data-value"));
+    currentDiceRoll=val;
+    diceRolled=true;
+    customDiceDiv.style.display="none";
+    addMoveToHistory(`${(currentTurn==="cones"?"Cones":"Spools")} rolled ${currentDiceRoll}`);
+    showTemporaryMessage(`${(currentTurn==="cones"?"Cones":"Spools")} rolled ${currentDiceRoll}`);
+    redrawPlayScreen();
+    let opts=getMoveOptions(currentDiceRoll,currentTurn);
+    if(opts.length===0){
+      showTemporaryMessage("No moves. Passing turn...");
+      nextPlayer=(currentTurn==="cones")?"spools":"cones";
+      diceRolled=false; currentDiceRoll=0;
+      endTurn(true);
+    }
+  });
+});
+
+/***********************************
+ * 14) Human Clicking the Board
+ ***********************************/
+function handleBoardClick(e){
+  if(gameState!=="playing")return;
+  if(currentTurn!==humanColor)return;
+  if(!diceRolled)return;
+  let opts=getMoveOptions(currentDiceRoll,currentTurn);
+  if(opts.length===0)return;
+  let rect=canvas.getBoundingClientRect();
+  let mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  let own=(currentTurn==="cones")?conesPieces:spoolsPieces;
+  for(let i=0;i<own.length;i++){
+    let pos=own[i];
+    if(pos<0||pos===30)continue;
+    let c=getPieceCoords(currentTurn,pos);
+    let dx=mx-c.x, dy=my-c.y;
+    if(Math.sqrt(dx*dx+dy*dy)<=24){
+      let found=opts.find(m=>m.pieceIndex===i);
+      if(!found){
+        showTemporaryMessage("Illegal move!");
+        return;
+      }
+      if(!executeMove(i,found.toPos,currentTurn))return;
+      redrawPlayScreen();
+      showTemporaryMessage(`${(currentTurn==="cones"?"Cones":"Spools")} moved a pawn`);
+      endTurn(true);
+      return;
+    }
+  }
+}
+
+/***********************************
+ * 15) AI Turn
+ ***********************************/
+function aiAutoRoll(){
+  if(gameState!=="playing")return;
+  if(currentTurn===humanColor)return;
+  if(!diceRolled){
+    currentDiceRoll=rollCustomDice();
+    diceRolled=true;
+    addMoveToHistory(`${(currentTurn==="cones"?"Cones":"Spools")} rolled ${currentDiceRoll}`);
+    showTemporaryMessage(`${(currentTurn==="cones"?"Cones":"Spools")} rolled ${currentDiceRoll}`);
+    redrawPlayScreen();
+    setTimeout(aiMakeMove,2000);
+  }
+}
+function aiMakeMove(){
+  let opts=getMoveOptions(currentDiceRoll,currentTurn);
+  if(opts.length===0){
+    showTemporaryMessage("AI has no moves. Passing turn...");
+    nextPlayer=(currentTurn==="cones")?"spools":"cones";
+    diceRolled=false; currentDiceRoll=0;
+    endTurn(false);
+    return;
+  }
+  let pick=opts[Math.floor(Math.random()*opts.length)];
+  executeMove(pick.pieceIndex,pick.toPos,currentTurn);
+  redrawPlayScreen();
+  if(extraTurn){
+    showTemporaryMessage(`${(currentTurn==="cones"?"Cones":"Spools")} goes again!`);
+    diceRolled=false; currentDiceRoll=0;
+    aiAutoRoll();
+  } else {
+    endTurn(false);
+  }
+}
+
+/***********************************
+ * 16) Turn End
+ ***********************************/
+function endTurn(isHumanTurn){
+  diceRolled=false; currentDiceRoll=0;
+  let delay=isHumanTurn?1000:2000;
+  setTimeout(()=>{
+    currentTurn=nextPlayer;
+    showTemporaryMessage(`${(currentTurn==="cones"?"Cones":"Spools")} Turn! Roll dice...`);
+    redrawPlayScreen();
+    if(currentTurn!==humanColor){
+      setTimeout(aiAutoRoll,2000);
+    }
+  },delay);
+}
+
+/***********************************
+ * 17) Main Loop
+ ***********************************/
+function mainLoop(){
+  if(gameState==="playing"){
+    redrawPlayScreen();
+    document.getElementById("rollDiceBtn").style.display=(currentTurn===humanColor)?"inline-block":"none";
+  }
+  requestAnimationFrame(mainLoop);
+}
+
+/***********************************
+ * 18) Overlays & Navigation
+ ***********************************/
+function hideAllScreens(){
+  menuScreen.style.display="none";
+  instructionsScreen.style.display="none";
+  sideScreen.style.display="none";
+  difficultyScreen.style.display="none";
+  gameOverScreen.style.display="none";
+}
+function showMenu(){
+  hideAllScreens();
+  gameState="menu";
+  menuScreen.style.display="flex";
+}
+function showInstructions(){
+  hideAllScreens();
+  gameState="instructions";
+  instructionsScreen.style.display="flex";
+  currentInstructionsPage=0;
+  updateInstructions();
+}
+function showSideSelect(){
+  hideAllScreens();
+  gameState="selectSide";
+  sideScreen.style.display="flex";
+}
+function showDifficultyScreen(){
+  hideAllScreens();
+  gameState="selectDifficulty";
+  difficultyScreen.style.display="flex";
+}
+function setDifficulty(d){
+  aiDifficulty=d;
+  startPlaying();
+}
+function startPlaying(){
+  hideAllScreens();
+  gameState="playing";
+  initPieces();
+  currentTurn="cones"; // Cones always start
+  diceRolled=false; currentDiceRoll=0; extraTurn=false;
+  addMoveToHistory("Cones Turn! Roll dice...");
+  showTemporaryMessage("Cones Turn! Roll dice...");
+  redrawPlayScreen();
+  if(currentTurn!==humanColor){
+    aiAutoRoll();
+  }
+}
+function showGameOver(){
+  hideAllScreens();
+  gameState="gameover";
+  gameOverScreen.style.display="flex";
+}
+
+/***********************************
+ * 19) Buttons & Keyboard
+ ***********************************/
+document.getElementById("conesBtn").onclick=()=>{
+  humanColor="cones";
+  showDifficultyScreen();
+};
+document.getElementById("spoolsBtn").onclick=()=>{
+  humanColor="spools";
+  showDifficultyScreen();
+};
+document.getElementById("easyBtn").onclick=()=>setDifficulty("easy");
+document.getElementById("mediumBtn").onclick=()=>setDifficulty("medium");
+document.getElementById("hardBtn").onclick=()=>setDifficulty("hard");
+document.getElementById("newGameBtn").onclick=()=>showSideSelect();
+document.getElementById("instructionsBtn").onclick=()=>showInstructions();
+document.getElementById("gameOverNewGameBtn").onclick=()=>showSideSelect();
+document.getElementById("rollDiceBtn").addEventListener("click",humanRollDice);
+
+document.addEventListener("keydown",(e)=>{
+  let key=e.key.toLowerCase();
+  if(gameState==="selectSide"){
+    if(key==="c") document.getElementById("conesBtn").click();
+    else if(key==="s") document.getElementById("spoolsBtn").click();
+  } else if(gameState==="selectDifficulty"){
+    if(key==="e") setDifficulty("easy");
+    else if(key==="m") setDifficulty("medium");
+    else if(key==="h") setDifficulty("hard");
+  } else if(gameState==="playing"){
+    if(key==="r" && currentTurn===humanColor && !diceRolled){
+      humanRollDice();
+    } else if(key==="m"){
+      initPieces();
+      showMenu();
+    }
+  } else if(["instructions","gameover"].includes(gameState)){
+    if(key==="m"){
+      initPieces();
+      showMenu();
+    }
+  }
+});
+canvas.addEventListener("mousedown",handleBoardClick);
+
+function startAll(){
+  showMenu();
+  requestAnimationFrame(mainLoop);
+}
+window.addEventListener("load",startAll);
+</script>
+</body>
+</html>
 
