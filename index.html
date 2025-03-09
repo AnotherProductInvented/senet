@@ -6,10 +6,12 @@
   <style>
     /* Basic layout */
     body {
-      margin: 0; padding: 0;
+      margin: 0; 
+      padding: 0;
       background: #fafafa;
       font-family: sans-serif;
-      display: flex; flex-direction: column;
+      display: flex; 
+      flex-direction: column;
       align-items: center;
     }
     h1 {
@@ -29,7 +31,8 @@
     /* Left & Right panels */
     #leftPanel, #rightPanel {
       min-width: 150px;
-      display: flex; flex-direction: column;
+      display: flex; 
+      flex-direction: column;
       align-items: center;
     }
     /* Game container (single 10px border) */
@@ -72,7 +75,8 @@
     }
     button {
       font-size: 18px;
-      margin: 10px; padding: 10px 20px;
+      margin: 10px; 
+      padding: 10px 20px;
       cursor: pointer;
       font-family: "Papyrus", cursive, serif;
     }
@@ -93,7 +97,8 @@
     /* Custom dice overlay */
     #customDice {
       position: absolute;
-      left: 50%; top: 50%;
+      left: 50%; 
+      top: 50%;
       transform: translate(-50%, -50%);
       background: #fff;
       border: 4px solid #8b4513;
@@ -117,7 +122,8 @@
     /* Temporary messages (2 sec) */
     #diceMessageOverlay {
       position: absolute;
-      left: 50%; top: 50%;
+      left: 50%; 
+      top: 50%;
       transform: translate(-50%, -50%);
       padding: 10px 20px;
       background: rgba(255,255,255,0.9);
@@ -137,7 +143,8 @@
     }
     #logo {
       position: fixed;
-      bottom: 10px; right: 10px;
+      bottom: 10px; 
+      right: 10px;
       max-width: 100px;
       z-index: 2000;
     }
@@ -210,9 +217,9 @@
 <img id="logo" src="logo.png" alt="Logo">
 
 <script>
-/***************************************************************
- * 0) Chroma-Key Helper: Remove pure white from images
- ***************************************************************/
+/*-----------------------------------------------------------
+  0) Chroma-Key Helper: Remove pure white from images
+-----------------------------------------------------------*/
 function removeColorFromImage(originalImg, colorToRemove, callback) {
   if (!originalImg.complete) {
     originalImg.onload = () => removeColorFromImage(originalImg, colorToRemove, callback);
@@ -239,12 +246,12 @@ function removeColorFromImage(originalImg, colorToRemove, callback) {
   newImg.onload = () => callback(newImg);
 }
 
-/***************************************************************
- * 1) Canvas & Board Setup
- ***************************************************************/
+/*-----------------------------------------------------------
+  1) Canvas & Board Setup
+-----------------------------------------------------------*/
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const squareSize = 60;
+const squareSize = 60; // 60px squares → 600x180 board
 const rows = 3, cols = 10;
 let boardSquares = [];
 for (let r = 0; r < rows; r++) {
@@ -252,7 +259,7 @@ for (let r = 0; r < rows; r++) {
     boardSquares.push({ x: c * squareSize, y: r * squareSize, w: squareSize, h: squareSize });
   }
 }
-/* Create a serpentine path for 30 squares */
+// Create a serpentine path for 30 squares
 let senetPath = [];
 for (let i = 0; i < cols; i++) {
   senetPath.push(i);
@@ -264,9 +271,9 @@ for (let i = 2 * cols; i < 3 * cols; i++) {
   senetPath.push(i);
 }
 
-/***************************************************************
- * 2) Game State
- ***************************************************************/
+/*-----------------------------------------------------------
+  2) Game State
+-----------------------------------------------------------*/
 let gameState = "menu";
 let humanColor = null; // "cones" or "spools"
 let aiDifficulty = "easy";
@@ -280,9 +287,9 @@ let diceRolled = false;
 let extraTurn = false;
 let nextPlayer = null;
 
-/***************************************************************
- * 3) Overlays & DOM Elements
- ***************************************************************/
+/*-----------------------------------------------------------
+  3) Overlays & DOM Elements
+-----------------------------------------------------------*/
 const menuScreen = document.getElementById("menuScreen");
 const instructionsScreen = document.getElementById("instructionsScreen");
 const sideScreen = document.getElementById("sideScreen");
@@ -292,9 +299,9 @@ const gameOverText = document.getElementById("gameOverText");
 const diceMessageOverlay = document.getElementById("diceMessageOverlay");
 const customDiceDiv = document.getElementById("customDice");
 
-/***************************************************************
- * 4) Instructions (4 Pages)
- ***************************************************************/
+/*-----------------------------------------------------------
+  4) Instructions (4 Pages)
+-----------------------------------------------------------*/
 const instructionsPages = [
 `Page 1 – General Gameplay:
 
@@ -318,13 +325,13 @@ Illegal Moves:
 • Square 26 (Golden Circle, Green Tile) → You must land on this square exactly; if you’re before square 26, you cannot overshoot it.
 • Square 27 (Water Tile) → When a piece lands here, it is immediately moved to square 15.
    - If square 15 is empty, the piece moves there.
-   - If square 15 is occupied by your own piece, the piece stacks.
-   - If square 15 is occupied by an opponent’s piece, you swap (your piece moves to square 15 and the opponent’s piece moves to 27), unless that opponent’s piece is protected (by a pair on squares 14–15 or 15–16), in which case the move is illegal.
+   - If square 15 is occupied by your own piece, your piece stacks.
+   - If square 15 is occupied by an opponent’s piece, you swap (your piece goes to square 15 and the opponent’s piece moves to 27) unless that opponent’s piece is protected (by a pair on squares 14–15 or 15–16), in which case the move is illegal.
 `,
 `Page 4 – Special Squares (Part 2) & Winning:
 
 • Squares 28 & 29 (Green Tiles) → Safe Zones (cannot be captured).
-• Square 30 (Exit Tile) → A piece must land exactly on square 30. When a piece lands here, it is removed from the board.
+• Square 30 (Exit Tile) → A piece must land exactly on square 30; when it does, that piece is removed from the board.
 • Winning: The first player to remove all 5 pieces wins.
 If no legal move is available, your turn is forfeited.
 
@@ -353,9 +360,9 @@ instructionsNextBtn.onclick = () => {
   }
 };
 
-/***************************************************************
- * 5) External Images (cones.png, spools.png, logo.png in same folder)
- ***************************************************************/
+/*-----------------------------------------------------------
+  5) External Images (cones.png, spools.png, logo.png in same folder)
+-----------------------------------------------------------*/
 let originalCones = new Image();
 originalCones.crossOrigin = "anonymous";
 originalCones.src = "cones.png";
@@ -376,9 +383,9 @@ originalSpools.onload = () => {
 let boatIcon = new Image();
 boatIcon.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHBhdGggZD0iTTQsNDBMNjAsNDBMNTIsNjBMMCwxNjBaIiBmaWxsPSIjQjg0NTEzIi8+PHBvbHlnb24gcG9pbnRzPSIzMiw0IDMyLDQwIDE2LDQwIiBmaWxsPSIjZmZmZiIvPjxwb2x5Z29uIHBvaW50cz0iMzIsNCAzMiw0MCA0OCw0MCIgZmlsbD0iI2ZmZiIvPjxsaW5lIHgxPSIzMiIgeTE9IjQiIHgyPSIzMiIgeTI9IjQwIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==';
 
-/***************************************************************
- * 6) Initialization
- ***************************************************************/
+/*-----------------------------------------------------------
+  6) Initialization
+-----------------------------------------------------------*/
 function initPieces() {
   // Cones on squares 1,3,5,7,9 (indices 0,2,4,6,8)
   // Spools on squares 2,4,6,8,10 (indices 1,3,5,7,9)
@@ -389,18 +396,18 @@ function initPieces() {
   updateMoveHistoryDisplay();
 }
 
-/***************************************************************
- * 7) Custom Dice
- ***************************************************************/
+/*-----------------------------------------------------------
+  7) Custom Dice
+-----------------------------------------------------------*/
 const allowedDice = [1, 2, 3, 4, 5];
 function rollCustomDice() {
   let idx = Math.floor(Math.random() * allowedDice.length);
   return allowedDice[idx];
 }
 
-/***************************************************************
- * Blockade Rule Functions
- ***************************************************************/
+/*-----------------------------------------------------------
+  Blockade Rule Functions
+-----------------------------------------------------------*/
 function getOccupancy() {
   let occ = {};
   for (let pos of conesPieces) {
@@ -432,24 +439,24 @@ function isPathBlocked(piecePos, targetPos) {
   return false;
 }
 
-/***************************************************************
- * 8) Movement & Rules (including blockade check)
- ***************************************************************/
+/*-----------------------------------------------------------
+  8) Movement & Rules (including blockade check)
+-----------------------------------------------------------*/
 function getValidMove(piecePos, diceValue) {
   if (diceValue === 0) return null;
   let newPos = piecePos + diceValue;
-  // Rule 26: if piece is before square 26, you cannot overshoot it.
+  // Rule 26: if the piece is before square 26, you must land exactly on square 26.
   if (piecePos < 26 && newPos > 26) return null;
-  // Rule 30: you must land exactly on 30 (no bounce-back).
+  // Rule 30: you must land exactly on square 30.
   if (newPos > 30) return null;
-  // Check for blockade along the movement path.
+  // Check blockade.
   if (isPathBlocked(piecePos, newPos)) return null;
   return newPos;
 }
 function canLandOn(pos, color) {
   if (pos < 30 && pos >= 0) {
     let own = (color === "cones") ? conesPieces : spoolsPieces;
-    if (pos === 14) return true; // Square 15 → stacking allowed
+    if (pos === 14) return true; // Square 15 (index 14) → stacking allowed.
     if (own.includes(pos)) return false;
   }
   return true;
@@ -476,18 +483,20 @@ function isProtected(pos, color) {
   return opp.includes(pos - 1) || opp.includes(pos + 1);
 }
 
-/***************************************************************
- * 9) Execute Move
- ***************************************************************/
+/*-----------------------------------------------------------
+  9) Execute Move
+  This function replaces your existing executeMove function.
+-----------------------------------------------------------*/
 function executeMove(pieceIndex, toPos, color) {
   let own = (color === "cones") ? conesPieces : spoolsPieces;
   let opp = (color === "cones") ? spoolsPieces : conesPieces;
   let fromPos = own[pieceIndex];
+
   if (toPos === null) {
-    showTemporaryMessage("Illegal move: overshoot, skipping square 26, path blocked, or not landing exactly on square 26!");
+    showTemporaryMessage("Illegal move: overshoot, skipping square 26, or path blocked!");
     return false;
   }
-  // Cannot land on your own piece (except square 15).
+  // Cannot land on your own piece (except square 15/index 14).
   if (toPos < 30 && toPos !== 14 && own.includes(toPos)) {
     showTemporaryMessage("Illegal: your own piece is there!");
     return false;
@@ -501,54 +510,60 @@ function executeMove(pieceIndex, toPos, color) {
     let oppIdx = opp.indexOf(toPos);
     opp[oppIdx] = fromPos;
   }
+  
+  // Set new position.
   own[pieceIndex] = toPos;
-  // Rule for Square 27: When a piece lands on square 27, it moves to square 15.
+  
+  // Rule 27: When a piece lands on square 27, it is immediately moved to square 15 (index 14).
   if (toPos === 27) {
     if (isOpponentProtectedAt15(color)) {
       showTemporaryMessage("Opponent has a protected pair on squares 14–15 or 15–16. Move illegal!");
       own[pieceIndex] = fromPos;
       return false;
     }
-    // Determine what is on square 15 (index 14)
-    let occupant15Opp = opp.indexOf(14);
-    let occupant15Own = own.indexOf(14);
-    if (occupant15Opp >= 0) {
-      // Swap: your piece goes to 15; opponent’s piece goes to 27.
-      opp[occupant15Opp] = 27;
-      own[pieceIndex] = 14;
-      addMoveToHistory(`${(color === "cones" ? "Cones" : "Spools")} swapped with the piece on square 15`);
-    } else if (occupant15Own >= 0) {
-      // Stack: your piece moves to 15.
-      own[pieceIndex] = 14;
-      addMoveToHistory(`${(color === "cones" ? "Cones" : "Spools")} stacked on their piece on square 15`);
-    } else {
-      // Move to square 15.
-      own[pieceIndex] = 14;
-      addMoveToHistory(`${(color === "cones" ? "Cones" : "Spools")} moved from 27 to square 15`);
+    const targetSquare = 14; // Square 15.
+    if (!own.includes(targetSquare) && !opp.includes(targetSquare)) {
+      // Square 15 is empty.
+      own[pieceIndex] = targetSquare;
+      addMoveToHistory(`${(color==="cones" ? "Cones" : "Spools")} moved from 27 to square 15`);
+    } else if (own.includes(targetSquare)) {
+      // Your piece is already there: stack.
+      own[pieceIndex] = targetSquare;
+      addMoveToHistory(`${(color==="cones" ? "Cones" : "Spools")} stacked on their piece at square 15`);
+    } else if (opp.includes(targetSquare)) {
+      // Opponent occupies square 15: swap.
+      let oppIdx = opp.indexOf(targetSquare);
+      opp[oppIdx] = 27;
+      own[pieceIndex] = targetSquare;
+      addMoveToHistory(`${(color==="cones" ? "Cones" : "Spools")} swapped with opponent piece at square 15`);
     }
   }
-  // Rule for Square 30: A piece landing exactly on 30 is removed.
+  
+  // Rule 30: A piece must land exactly on square 30.
   if (toPos === 30) {
-    addMoveToHistory(`${(color === "cones" ? "Cones" : "Spools")} removed a piece (square 30)`);
+    addMoveToHistory(`${(color==="cones" ? "Cones" : "Spools")} removed a piece (square 30)`);
   } else {
-    addMoveToHistory(`${(color === "cones" ? "Cones" : "Spools")} moved from ${fromPos + 1} to ${own[pieceIndex] + 1}`);
+    addMoveToHistory(`${(color==="cones" ? "Cones" : "Spools")} moved from ${fromPos+1} to ${own[pieceIndex]+1}`);
   }
+  
   lastMove = { fromPos, toPos, color, pieceIndex };
   extraTurn = false;
   nextPlayer = (color === "cones") ? "spools" : "cones";
+  
+  // Check win condition: if all pieces of this color are at square 30.
   let finished = own.filter(p => p === 30).length;
   if (finished === NUM_PIECES) {
     gameOverText.textContent = (color === humanColor) ? "You Win!" : "You Lose!";
-    addMoveToHistory(`${(color === "cones" ? "Cones" : "Spools")} wins!`);
+    addMoveToHistory(`${(color==="cones" ? "Cones" : "Spools")} wins!`);
     showGameOver();
     return true;
   }
   return true;
 }
 
-/***************************************************************
- * 10) Drawing Functions
- ***************************************************************/
+/*-----------------------------------------------------------
+  10) Drawing Functions
+-----------------------------------------------------------*/
 function drawBoard() {
   ctx.clearRect(0, 0, 600, 180);
   for (let i = 0; i < senetPath.length; i++) {
@@ -636,18 +651,18 @@ function redrawPlayScreen() {
   drawPieces();
 }
 
-/***************************************************************
- * 11) Temporary Messages (2 sec)
- ***************************************************************/
+/*-----------------------------------------------------------
+  11) Temporary Messages (2 sec)
+-----------------------------------------------------------*/
 function showTemporaryMessage(msg) {
   diceMessageOverlay.textContent = msg;
   diceMessageOverlay.style.display = "block";
   setTimeout(() => { diceMessageOverlay.style.display = "none"; }, 2000);
 }
 
-/***************************************************************
- * 12) Move History
- ***************************************************************/
+/*-----------------------------------------------------------
+  12) Move History
+-----------------------------------------------------------*/
 let moveHistoryDiv = document.getElementById("moveHistory");
 function addMoveToHistory(txt) {
   moveHistory.push(txt);
@@ -660,9 +675,9 @@ function updateMoveHistoryDisplay() {
   moveHistoryDiv.innerHTML = "Moves:<br>" + moveHistory.join("<br>");
 }
 
-/***************************************************************
- * 13) Human Turn: Custom Dice
- ***************************************************************/
+/*-----------------------------------------------------------
+  13) Human Turn: Custom Dice
+-----------------------------------------------------------*/
 function humanRollDice() {
   if (gameState !== "playing") return;
   if (currentTurn !== humanColor) return;
@@ -688,9 +703,9 @@ document.querySelectorAll(".diceChoice").forEach(btn => {
   });
 });
 
-/***************************************************************
- * 14) Human Clicking the Board
- ***************************************************************/
+/*-----------------------------------------------------------
+  14) Human Clicking the Board
+-----------------------------------------------------------*/
 function handleBoardClick(e) {
   if (gameState !== "playing") return;
   if (currentTurn !== humanColor) return;
@@ -720,9 +735,9 @@ function handleBoardClick(e) {
   }
 }
 
-/***************************************************************
- * 15) AI Turn
- ***************************************************************/
+/*-----------------------------------------------------------
+  15) AI Turn
+-----------------------------------------------------------*/
 function aiAutoRoll() {
   if (gameState !== "playing") return;
   if (currentTurn === humanColor) return;
@@ -756,9 +771,9 @@ function aiMakeMove() {
   }
 }
 
-/***************************************************************
- * 16) Turn End
- ***************************************************************/
+/*-----------------------------------------------------------
+  16) Turn End
+-----------------------------------------------------------*/
 function endTurn(isHumanTurn) {
   diceRolled = false; currentDiceRoll = 0;
   let delay = isHumanTurn ? 1000 : 2000;
@@ -772,9 +787,9 @@ function endTurn(isHumanTurn) {
   }, delay);
 }
 
-/***************************************************************
- * 17) Main Loop
- ***************************************************************/
+/*-----------------------------------------------------------
+  17) Main Loop
+-----------------------------------------------------------*/
 function mainLoop() {
   if (gameState === "playing") {
     redrawPlayScreen();
@@ -783,9 +798,9 @@ function mainLoop() {
   requestAnimationFrame(mainLoop);
 }
 
-/***************************************************************
- * 18) Overlays & Navigation
- ***************************************************************/
+/*-----------------------------------------------------------
+  18) Overlays & Navigation
+-----------------------------------------------------------*/
 function hideAllScreens() {
   menuScreen.style.display = "none";
   instructionsScreen.style.display = "none";
@@ -838,9 +853,9 @@ function showGameOver() {
   gameOverScreen.style.display = "flex";
 }
 
-/***************************************************************
- * 19) Buttons & Keyboard
- ***************************************************************/
+/*-----------------------------------------------------------
+  19) Buttons & Keyboard
+-----------------------------------------------------------*/
 document.getElementById("conesBtn").onclick = () => {
   humanColor = "cones";
   showDifficultyScreen();
