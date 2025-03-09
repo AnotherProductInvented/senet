@@ -211,7 +211,7 @@
 
 <script>
 /***************************************************************
- * 0) Chroma-Key Helper: Remove pure white background from images
+ * 0) Chroma-Key Helper: Remove pure white from images
  ***************************************************************/
 function removeColorFromImage(originalImg, colorToRemove, callback) {
   if (!originalImg.complete) {
@@ -319,13 +319,14 @@ Illegal Moves:
 • Square 26 (Golden Circle, Green Tile) → You must land on this square exactly to advance.
 • Square 27 (Water Tile) → When a piece lands here, it is moved to square 15.
    - If square 15 is empty, the piece moves there.
-   - If square 15 is occupied by your own piece, the piece stacks.
+   - If square 15 is occupied by your own piece, your piece stacks.
    - If square 15 is occupied by an opponent’s piece, you swap.
-   - Exception: If the opponent has a protected pair on squares 14–15 or 15–16, the move is illegal.`,
+   - Exception: If the opponent has a protected pair on squares 14–15 or 15–16, the move is illegal.
+`,
 `Page 4 – Special Squares (Part 2) & Winning:
 
 • Squares 28 & 29 (Green Tiles) → Safe Zones (cannot be captured).
-• Square 30 (Exit Tile) → Landing exactly here removes your piece from the board.
+• Square 30 (Exit Tile) → If a piece lands exactly here, it is removed from the board.
 • Winning: The first player to remove all 5 pieces wins.
 If no legal move is available, your turn is forfeited.
 
@@ -439,12 +440,10 @@ function isPathBlocked(piecePos, targetPos) {
 function getValidMove(piecePos, diceValue) {
   if (diceValue === 0) return null;
   let newPos = piecePos + diceValue;
-  // Must land exactly on square 26 if behind it.
+  // If behind square 26, must land exactly on 26.
   if (piecePos < 26 && newPos > 26 && newPos !== 26) return null;
-  if (newPos > 30) {
-    newPos = 30 - diceValue;
-    if (newPos < 0) return null;
-  }
+  // For square 30, the sum must be exactly 30.
+  if (newPos > 30) return null;
   // Check blockade along the movement path.
   if (isPathBlocked(piecePos, newPos)) return null;
   return newPos;
@@ -452,7 +451,7 @@ function getValidMove(piecePos, diceValue) {
 function canLandOn(pos, color) {
   if (pos < 30 && pos >= 0) {
     let own = (color === "cones") ? conesPieces : spoolsPieces;
-    if (pos === 14) return true; // Square 15 (index 14) → stacking allowed
+    if (pos === 14) return true; // Square 15 → stacking allowed
     if (own.includes(pos)) return false;
   }
   return true;
@@ -471,7 +470,7 @@ function getMoveOptions(diceValue, color) {
 }
 function isOpponentProtectedAt15(color) {
   let opp = (color === "cones") ? spoolsPieces : conesPieces;
-  // Check for a contiguous pair on squares 14-15 or 15-16 (0-indexed: 13-14 or 14-15)
+  // Check if opponent has a protected pair on squares 14–15 or 15–16 (0-indexed: 13–14 or 14–15)
   return ((opp.includes(13) && opp.includes(14)) || (opp.includes(14) && opp.includes(15)));
 }
 function isProtected(pos, color) {
@@ -490,10 +489,12 @@ function executeMove(pieceIndex, toPos, color) {
     showTemporaryMessage("Illegal move: overshoot, skipping square 26, path blocked, or not landing exactly on 26!");
     return false;
   }
+  // If moving and landing on a square already occupied by your own piece (except square 15), illegal.
   if (toPos < 30 && toPos !== 14 && own.includes(toPos)) {
     showTemporaryMessage("Illegal: your own piece is there!");
     return false;
   }
+  // If landing on an opponent's piece, swap (unless protected).
   if (toPos < 30 && opp.includes(toPos)) {
     if (isProtected(toPos, color)) {
       showTemporaryMessage("Opponent's piece is protected!");
@@ -503,7 +504,8 @@ function executeMove(pieceIndex, toPos, color) {
     opp[oppIdx] = fromPos;
   }
   own[pieceIndex] = toPos;
-  // Rule for Square 27 (Water Tile): when a piece lands on 27, it moves to square 15 (index 14)
+  
+  // Special Rule for Square 27 (Water Tile):
   if (toPos === 27) {
     if (isOpponentProtectedAt15(color)) {
       showTemporaryMessage("Opponent has a protected pair on squares 14–15 or 15–16. Can't move there!");
@@ -524,11 +526,17 @@ function executeMove(pieceIndex, toPos, color) {
       addMoveToHistory(`${(color === "cones" ? "Cones" : "Spools")} landed on water and moved to square 15`);
     }
   }
+  
+  // If the piece lands exactly on square 30, it's removed from the board.
+  if (toPos === 30) {
+    addMoveToHistory(`${(color === "cones" ? "Cones" : "Spools")} removed a piece from the board (square 30)`);
+  } else {
+    addMoveToHistory(`${(color === "cones" ? "Cones" : "Spools")} moved from ${fromPos + 1} to ${own[pieceIndex] + 1}`);
+  }
+  
   lastMove = { fromPos, toPos, color, pieceIndex };
-  addMoveToHistory(`${(color === "cones" ? "Cones" : "Spools")} moved from ${fromPos + 1} to ${own[pieceIndex] + 1}`);
   extraTurn = false;
   nextPlayer = (color === "cones") ? "spools" : "cones";
-  // Check if the piece has reached square 30 (Exit Tile)
   let finished = own.filter(p => p === 30).length;
   if (finished === NUM_PIECES) {
     gameOverText.textContent = (color === humanColor) ? "You Win!" : "You Lose!";
