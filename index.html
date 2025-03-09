@@ -52,7 +52,7 @@
       background: #f5f2e8;
       margin: auto;
     }
-    /* Overlays (with a thick double border) */
+    /* Overlays (with thick double borders) */
     .overlayScreen {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -119,7 +119,7 @@
       text-align: left;
       width: 250px;
     }
-    /* Temporary messages (2 seconds) */
+    /* Temporary messages (2 sec) */
     #diceMessageOverlay {
       position: absolute;
       left: 50%;
@@ -170,14 +170,12 @@
   <!-- Center Panel: Game Container -->
   <div id="gameContainer">
     <div id="diceMessageOverlay"></div>
-
     <!-- Menu Screen -->
     <div id="menuScreen" class="overlayScreen" style="display:flex;">
       <h1>Senet</h1>
       <button id="newGameBtn">New Game</button>
       <button id="instructionsBtn">Instructions</button>
     </div>
-
     <!-- Instructions Screen (4 pages) -->
     <div id="instructionsScreen" class="overlayScreen">
       <p id="instructionsContent"></p>
@@ -186,14 +184,12 @@
         <button id="instructionsNextBtn">Next</button>
       </div>
     </div>
-
     <!-- Side Selection Screen -->
     <div id="sideScreen" class="overlayScreen">
       <p>Choose your side:</p>
       <button id="conesBtn">Cones (Player 1)</button>
       <button id="spoolsBtn">Spools (Player 2)</button>
     </div>
-
     <!-- Difficulty Selection Screen -->
     <div id="difficultyScreen" class="overlayScreen">
       <p>Select AI Difficulty:</p>
@@ -201,14 +197,12 @@
       <button id="mediumBtn">Medium</button>
       <button id="hardBtn">Hard</button>
     </div>
-
     <!-- Game Over Screen -->
     <div id="gameOverScreen" class="overlayScreen">
       <h2 id="gameOverText"></h2>
       <button id="gameOverNewGameBtn">New Game</button>
       <p>Press M to return to the Main Menu.</p>
     </div>
-
     <!-- The Senet board canvas (600×180) -->
     <canvas id="gameCanvas" width="600" height="180"></canvas>
   </div>
@@ -257,7 +251,7 @@ function removeColorFromImage(originalImg, colorToRemove, callback) {
  ***************************************************************/
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const squareSize = 60;
+const squareSize = 60; // 60px squares → 600×180 board
 const rows = 3, cols = 10;
 let boardSquares = [];
 for (let r = 0; r < rows; r++) {
@@ -329,11 +323,11 @@ Illegal Moves:
 `Page 3 – Special Squares (Part 1):
 
 • Square 15 (Boat Icon) → Safe Zone (stacking allowed; cannot be captured).
-• Square 26 (Golden Circle, Green Tile) → You must land on this square exactly to advance past it.
-• Square 27 (Water Tile) → Landing here sends your piece back to Square 15.
-   - If Square 15 is empty, your piece moves there.
-   - If Square 15 is occupied by your own piece, you stack.
-   - If Square 15 is occupied by an opponent’s piece, you swap.
+• Square 26 (Golden Circle, Green Tile) → You must land on this square exactly to advance.
+• Square 27 (Water Tile) → Landing here sends your piece back to square 15.
+   - If square 15 is empty, your piece moves there.
+   - If square 15 is occupied by your own piece, you stack.
+   - If square 15 is occupied by an opponent’s piece, you swap.
    - Exception: If the opponent has a protected pair on squares 15–16, you cannot move there.`,
 `Page 4 – Special Squares (Part 2) & Winning:
 
@@ -368,7 +362,8 @@ instructionsNextBtn.onclick = () => {
 };
 
 /***************************************************************
- * 5) External Images (from same folder)
+ * 5) External Images
+ * Ensure cones.png, spools.png, and logo.png are in the same folder.
  ***************************************************************/
 let originalCones = new Image();
 originalCones.crossOrigin = "anonymous";
@@ -376,7 +371,7 @@ originalCones.src = "cones.png";
 let originalSpools = new Image();
 originalSpools.crossOrigin = "anonymous";
 originalSpools.src = "spools.png";
-// We'll store the chroma-keyed images here:
+// Use chroma-key to remove pure white background from the images:
 let conesImg = null, spoolsImg = null;
 originalCones.onload = () => {
   removeColorFromImage(originalCones, { r: 255, g: 255, b: 255 }, (chromaImg) => {
@@ -388,7 +383,7 @@ originalSpools.onload = () => {
     spoolsImg = chromaImg;
   });
 };
-// Boat icon is inline SVG (transparent)
+// Boat icon (inline SVG with transparent background)
 let boatIcon = new Image();
 boatIcon.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHBhdGggZD0iTTQsNDBMNjAsNDBMNTIsNjBMMCwxNjBaIiBmaWxsPSIjQjg0NTEzIi8+PHBvbHlnb24gcG9pbnRzPSIzMiw0IDMyLDQwIDE2LDQwIiBmaWxsPSIjZmZmZiIvPjxwb2x5Z29uIHBvaW50cz0iMzIsNCAzMiw0MCA0OCw0MCIgZmlsbD0iI2ZmZiIvPjxsaW5lIHgxPSIzMiIgeTE9IjQiIHgyPSIzMiIgeTI9IjQwIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==';
 
@@ -396,8 +391,8 @@ boatIcon.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcm
  * 6) Initialization
  ***************************************************************/
 function initPieces() {
-  // Cones on squares 1,3,5,7,9 (indices 0,2,4,6,8)
-  // Spools on squares 2,4,6,8,10 (indices 1,3,5,7,9)
+  // Cones on squares 1, 3, 5, 7, 9 (indices 0,2,4,6,8)
+  // Spools on squares 2, 4, 6, 8, 10 (indices 1,3,5,7,9)
   conesPieces = [0, 2, 4, 6, 8];
   spoolsPieces = [1, 3, 5, 7, 9];
   lastMove = null;
@@ -406,7 +401,7 @@ function initPieces() {
 }
 
 /***************************************************************
- * 7) Custom Dice
+ * 7) Dice
  ***************************************************************/
 const allowedDice = [1, 2, 3, 4, 5];
 function rollCustomDice() {
@@ -415,16 +410,16 @@ function rollCustomDice() {
 }
 
 /***************************************************************
- * 8) Movement & Basic Rules
+ * 8) Movement & Rules
  ***************************************************************/
 function getValidMove(piecePos, diceValue) {
   if (diceValue === 0) return null;
   let newPos = piecePos + diceValue;
-  // If you're before square 26, you must land exactly on 26
+  // If you're before square 26, you must land exactly on 26 (cannot skip it)
   if (piecePos < 26 && newPos > 26 && newPos !== 26) {
     return null;
   }
-  // Overshooting square 30 results in bounce back: newPos = 30 - diceValue
+  // For square 30, if overshooting, bounce back
   if (newPos > 30) {
     newPos = 30 - diceValue;
     if (newPos < 0) return null;
@@ -484,7 +479,7 @@ function executeMove(pieceIndex, toPos, color) {
     opp[oppIdx] = fromPos;
   }
   own[pieceIndex] = toPos;
-  // Special: Square 27 (Water Tile) → sends piece to Square 15
+  // Square 27 (Water Tile) rule:
   if (toPos === 27) {
     if (isOpponentProtectedAt15(color)) {
       showTemporaryMessage("Opponent has a protected pair on squares 15–16. Can't move there!");
@@ -677,7 +672,7 @@ function handleBoardClick(e) {
     if (pos < 0 || pos === 30) continue;
     let c = getPieceCoords(currentTurn, pos);
     let dx = mx - c.x, dy = my - c.y;
-    if (Math.sqrt(dx*dx + dy*dy) <= 24) {
+    if (Math.sqrt(dx * dx + dy * dy) <= 24) {
       let found = opts.find(m => m.pieceIndex === i);
       if (!found) {
         showTemporaryMessage("Illegal move!");
