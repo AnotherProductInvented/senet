@@ -268,13 +268,13 @@ for (let i = 2 * cols; i < 3 * cols; i++) {
  * 2) Game State
  ***************************************************************/
 let gameState = "menu";
-let humanColor = null; // "cones" or "spools"
+let humanColor = null;
 let aiDifficulty = "easy";
 const NUM_PIECES = 5;
 let conesPieces = [], spoolsPieces = [];
 let lastMove = null;
 let moveHistory = [];
-let currentTurn = null; // "cones" or "spools"
+let currentTurn = null;
 let currentDiceRoll = 0;
 let diceRolled = false;
 let extraTurn = false;
@@ -294,7 +294,6 @@ const customDiceDiv = document.getElementById("customDice");
 
 /***************************************************************
  * 4) Instructions (4 Pages)
- * Only Page 4 displays "Press 'M' to return to the Main Menu."
  ***************************************************************/
 const instructionsPages = [
 `Page 1 – General Gameplay:
@@ -316,12 +315,13 @@ Illegal Moves:
 `Page 3 – Special Squares (Part 1):
 
 • Square 15 (Boat Icon) → Safe Zone (stacking allowed; cannot be captured).
-• Square 26 (Golden Circle, Green Tile) → You must land on this square exactly to advance past it.
+• Square 26 (Golden Circle, Green Tile) → You must land on this square exactly to advance.
 • Square 27 (Water Tile) → Landing here sends your piece back to square 15.
    - If square 15 is empty, your piece moves there.
    - If square 15 is occupied by your own piece, your piece stacks.
    - If square 15 is occupied by an opponent’s piece, you swap.
-   - Exception: If the opponent has a protected pair on squares 14–15 or 15–16, you cannot move there.`,
+   - Exception: If the opponent has a protected pair on squares 14–15 or 15–16, you cannot move there.
+`,
 `Page 4 – Special Squares (Part 2) & Winning:
 
 • Squares 28 & 29 (Green Tiles) → Safe Zones (cannot be captured).
@@ -363,7 +363,6 @@ originalCones.src = "cones.png";
 let originalSpools = new Image();
 originalSpools.crossOrigin = "anonymous";
 originalSpools.src = "spools.png";
-// Use chroma-key to remove pure white background:
 let conesImg = null, spoolsImg = null;
 originalCones.onload = () => {
   removeColorFromImage(originalCones, { r: 255, g: 255, b: 255 }, (chromaImg) => {
@@ -375,7 +374,6 @@ originalSpools.onload = () => {
     spoolsImg = chromaImg;
   });
 };
-// Boat icon (inline SVG with transparent background)
 let boatIcon = new Image();
 boatIcon.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHBhdGggZD0iTTQsNDBMNjAsNDBMNTIsNjBMMCwxNjBaIiBmaWxsPSIjQjg0NTEzIi8+PHBvbHlnb24gcG9pbnRzPSIzMiw0IDMyLDQwIDE2LDQwIiBmaWxsPSIjZmZmZiIvPjxwb2x5Z29uIHBvaW50cz0iMzIsNCAzMiw0MCA0OCw0MCIgZmlsbD0iI2ZmZiIvPjxsaW5lIHgxPSIzMiIgeTE9IjQiIHgyPSIzMiIgeTI9IjQwIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==';
 
@@ -383,8 +381,6 @@ boatIcon.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcm
  * 6) Initialization
  ***************************************************************/
 function initPieces() {
-  // Cones on squares 1,3,5,7,9 (indices 0,2,4,6,8)
-  // Spools on squares 2,4,6,8,10 (indices 1,3,5,7,9)
   conesPieces = [0, 2, 4, 6, 8];
   spoolsPieces = [1, 3, 5, 7, 9];
   lastMove = null;
@@ -402,25 +398,57 @@ function rollCustomDice() {
 }
 
 /***************************************************************
+ * Blockade Rule Functions
+ ***************************************************************/
+function getOccupancy() {
+  let occ = {};
+  for (let pos of conesPieces) {
+    if (pos >= 0 && pos < 30) occ[pos] = "cones";
+  }
+  for (let pos of spoolsPieces) {
+    if (pos >= 0 && pos < 30) occ[pos] = "spools";
+  }
+  return occ;
+}
+function isPathBlocked(piecePos, targetPos) {
+  let occ = getOccupancy();
+  let startIndex = senetPath.indexOf(piecePos);
+  let targetIndex = senetPath.indexOf(targetPos);
+  if (startIndex === -1 || targetIndex === -1) return false;
+  let contiguous = 0;
+  let lastColor = null;
+  for (let i = startIndex + 1; i <= targetIndex; i++) {
+    let boardIndex = senetPath[i];
+    let color = occ[boardIndex] || null;
+    if (color && color === lastColor) {
+      contiguous++;
+    } else {
+      contiguous = color ? 1 : 0;
+      lastColor = color;
+    }
+    if (contiguous >= 3) return true;
+  }
+  return false;
+}
+
+/***************************************************************
  * 8) Movement & Rules (including blockade check)
  ***************************************************************/
 function getValidMove(piecePos, diceValue) {
   if (diceValue === 0) return null;
   let newPos = piecePos + diceValue;
-  // Must land exactly on square 26 if you're behind it.
   if (piecePos < 26 && newPos > 26 && newPos !== 26) return null;
   if (newPos > 30) {
     newPos = 30 - diceValue;
     if (newPos < 0) return null;
   }
-  // Check for blockade along the path.
   if (isPathBlocked(piecePos, newPos)) return null;
   return newPos;
 }
 function canLandOn(pos, color) {
   if (pos < 30 && pos >= 0) {
     let own = (color === "cones") ? conesPieces : spoolsPieces;
-    if (pos === 14) return true; // Square 15 → stacking allowed
+    if (pos === 14) return true;
     if (own.includes(pos)) return false;
   }
   return true;
@@ -439,8 +467,7 @@ function getMoveOptions(diceValue, color) {
 }
 function isOpponentProtectedAt15(color) {
   let opp = (color === "cones") ? spoolsPieces : conesPieces;
-  // Check if opponent has a contiguous pair on either squares 14-15 or 15-16.
-  return (opp.includes(13) && opp.includes(14)) || (opp.includes(14) && opp.includes(15));
+  return ((opp.includes(13) && opp.includes(14)) || (opp.includes(14) && opp.includes(15)));
 }
 function isProtected(pos, color) {
   let opp = (color === "cones") ? spoolsPieces : conesPieces;
@@ -455,7 +482,7 @@ function executeMove(pieceIndex, toPos, color) {
   let opp = (color === "cones") ? spoolsPieces : conesPieces;
   let fromPos = own[pieceIndex];
   if (toPos === null) {
-    showTemporaryMessage("Illegal move: overshoot, skipping square 26, or path is blocked!");
+    showTemporaryMessage("Illegal move: overshoot, skipping square 26, path blocked, or not landing exactly on square 26!");
     return false;
   }
   if (toPos < 30 && toPos !== 14 && own.includes(toPos)) {
@@ -471,7 +498,7 @@ function executeMove(pieceIndex, toPos, color) {
     opp[oppIdx] = fromPos;
   }
   own[pieceIndex] = toPos;
-  // Rule for Square 27 (Water Tile):
+  // Square 27 rule:
   if (toPos === 27) {
     if (isOpponentProtectedAt15(color)) {
       showTemporaryMessage("Opponent has a protected pair on squares 14–15 or 15–16. Can't move there!");
@@ -783,7 +810,7 @@ function startPlaying() {
   hideAllScreens();
   gameState = "playing";
   initPieces();
-  currentTurn = "cones"; // Cones always start
+  currentTurn = "cones";
   diceRolled = false; currentDiceRoll = 0; extraTurn = false;
   addMoveToHistory("Cones Turn! Roll dice...");
   showTemporaryMessage("Cones Turn! Roll dice...");
