@@ -6,8 +6,7 @@
   <style>
     /* Basic layout */
     body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       background: #fafafa;
       font-family: sans-serif;
       display: flex;
@@ -75,8 +74,7 @@
     }
     button {
       font-size: 18px;
-      margin: 10px;
-      padding: 10px 20px;
+      margin: 10px; padding: 10px 20px;
       cursor: pointer;
       font-family: "Papyrus", cursive, serif;
     }
@@ -97,8 +95,7 @@
     /* Custom dice overlay */
     #customDice {
       position: absolute;
-      left: 50%;
-      top: 50%;
+      left: 50%; top: 50%;
       transform: translate(-50%, -50%);
       background: #fff;
       border: 4px solid #8b4513;
@@ -122,8 +119,7 @@
     /* Temporary messages (2 sec) */
     #diceMessageOverlay {
       position: absolute;
-      left: 50%;
-      top: 50%;
+      left: 50%; top: 50%;
       transform: translate(-50%, -50%);
       padding: 10px 20px;
       background: rgba(255,255,255,0.9);
@@ -143,8 +139,7 @@
     }
     #logo {
       position: fixed;
-      bottom: 10px;
-      right: 10px;
+      bottom: 10px; right: 10px;
       max-width: 100px;
       z-index: 2000;
     }
@@ -206,7 +201,6 @@
     <!-- The Senet board canvas (600×180) -->
     <canvas id="gameCanvas" width="600" height="180"></canvas>
   </div>
-
   <!-- Right Panel: Move History -->
   <div id="rightPanel">
     <div id="moveHistory">Moves:<br></div>
@@ -218,7 +212,7 @@
 
 <script>
 /***************************************************************
- * 0) Chroma-Key Helper: Remove pure white from images
+ * 0) Chroma-Key Helper: Remove pure white background from images
  ***************************************************************/
 function removeColorFromImage(originalImg, colorToRemove, callback) {
   if (!originalImg.complete) {
@@ -251,7 +245,7 @@ function removeColorFromImage(originalImg, colorToRemove, callback) {
  ***************************************************************/
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const squareSize = 60; // 60px squares → 600×180 board
+const squareSize = 60;
 const rows = 3, cols = 10;
 let boardSquares = [];
 for (let r = 0; r < rows; r++) {
@@ -301,7 +295,7 @@ const customDiceDiv = document.getElementById("customDice");
 
 /***************************************************************
  * 4) Instructions (4 Pages)
- * Only the final page includes "Press M to return to the Main Menu."
+ * Only Page 4 displays "Press M to return to the Main Menu."
  ***************************************************************/
 const instructionsPages = [
 `Page 1 – General Gameplay:
@@ -319,11 +313,11 @@ Illegal Moves:
 
 • If you land on a square occupied by your opponent’s unprotected piece, you swap places.
 • Protected pieces (two in a row) cannot be captured.
-• Blockades (three or more in a row) prevent all movement past them.`,
+• Blockades: If three or more pieces of the same color occupy consecutive squares along the path, they form a blockade that prevents any piece from moving past them.`,
 `Page 3 – Special Squares (Part 1):
 
 • Square 15 (Boat Icon) → Safe Zone (stacking allowed; cannot be captured).
-• Square 26 (Golden Circle, Green Tile) → You must land on this square exactly to advance.
+• Square 26 (Golden Circle, Green Tile) → You must land on this square exactly to advance past it.
 • Square 27 (Water Tile) → Landing here sends your piece back to square 15.
    - If square 15 is empty, your piece moves there.
    - If square 15 is occupied by your own piece, you stack.
@@ -332,7 +326,7 @@ Illegal Moves:
 `Page 4 – Special Squares (Part 2) & Winning:
 
 • Squares 28 & 29 (Green Tiles) → Safe Zones (cannot be captured).
-• Square 30 (Exit Tile) → You must land exactly on this square to remove the piece from the board.
+• Square 30 (Exit Tile) → If a piece lands exactly here, it is removed from the board and counts toward winning.
 • Winning: The first player to remove all 5 pieces wins.
 If no legal move is available, your turn is forfeited.
 
@@ -362,8 +356,7 @@ instructionsNextBtn.onclick = () => {
 };
 
 /***************************************************************
- * 5) External Images
- * Ensure cones.png, spools.png, and logo.png are in the same folder.
+ * 5) External Images (cones.png, spools.png, logo.png in same folder)
  ***************************************************************/
 let originalCones = new Image();
 originalCones.crossOrigin = "anonymous";
@@ -371,7 +364,7 @@ originalCones.src = "cones.png";
 let originalSpools = new Image();
 originalSpools.crossOrigin = "anonymous";
 originalSpools.src = "spools.png";
-// Use chroma-key to remove pure white background from the images:
+// Use chroma-key to remove pure white background:
 let conesImg = null, spoolsImg = null;
 originalCones.onload = () => {
   removeColorFromImage(originalCones, { r: 255, g: 255, b: 255 }, (chromaImg) => {
@@ -391,8 +384,8 @@ boatIcon.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcm
  * 6) Initialization
  ***************************************************************/
 function initPieces() {
-  // Cones on squares 1, 3, 5, 7, 9 (indices 0,2,4,6,8)
-  // Spools on squares 2, 4, 6, 8, 10 (indices 1,3,5,7,9)
+  // Cones on squares 1,3,5,7,9 (indices 0,2,4,6,8)
+  // Spools on squares 2,4,6,8,10 (indices 1,3,5,7,9)
   conesPieces = [0, 2, 4, 6, 8];
   spoolsPieces = [1, 3, 5, 7, 9];
   lastMove = null;
@@ -401,7 +394,7 @@ function initPieces() {
 }
 
 /***************************************************************
- * 7) Dice
+ * 7) Custom Dice
  ***************************************************************/
 const allowedDice = [1, 2, 3, 4, 5];
 function rollCustomDice() {
@@ -410,19 +403,66 @@ function rollCustomDice() {
 }
 
 /***************************************************************
- * 8) Movement & Rules
+ * Blockade Rule – Occupancy Helper
+ ***************************************************************/
+function getOccupancy() {
+  let occ = {};
+  // For each piece on the board (squares 0-29), record its color.
+  for (let pos of conesPieces) {
+    if (pos >= 0 && pos < 30) {
+      occ[pos] = "cones";
+    }
+  }
+  for (let pos of spoolsPieces) {
+    if (pos >= 0 && pos < 30) {
+      occ[pos] = "spools";
+    }
+  }
+  return occ;
+}
+/* Check the movement path from piecePos to targetPos for blockades.
+   A blockade is three or more contiguous squares (in the senet path)
+   occupied by pieces of the same color. If such a blockade exists between
+   the start and target, the move is illegal.
+*/
+function isPathBlocked(piecePos, targetPos) {
+  let occ = getOccupancy();
+  let startIndex = senetPath.indexOf(piecePos);
+  let targetIndex = senetPath.indexOf(targetPos);
+  if (startIndex === -1 || targetIndex === -1) return false;
+  let contiguous = 0;
+  let lastColor = null;
+  for (let i = startIndex + 1; i <= targetIndex; i++) {
+    let sq = senetPath[i]; // board square index
+    let color = occ[sq] || null;
+    if (color && color === lastColor) {
+      contiguous++;
+    } else {
+      contiguous = color ? 1 : 0;
+      lastColor = color;
+    }
+    if (contiguous >= 3) return true;
+  }
+  return false;
+}
+
+/***************************************************************
+ * 8) Movement & Basic Rules (including blockade check)
  ***************************************************************/
 function getValidMove(piecePos, diceValue) {
   if (diceValue === 0) return null;
   let newPos = piecePos + diceValue;
-  // If you're before square 26, you must land exactly on 26 (cannot skip it)
+  // Must land exactly on square 26 if you're behind it.
   if (piecePos < 26 && newPos > 26 && newPos !== 26) {
     return null;
   }
-  // For square 30, if overshooting, bounce back
   if (newPos > 30) {
     newPos = 30 - diceValue;
     if (newPos < 0) return null;
+  }
+  // Check blockade: if any blockade exists in the path from piecePos to newPos, move is illegal.
+  if (isPathBlocked(piecePos, newPos)) {
+    return null;
   }
   return newPos;
 }
@@ -463,7 +503,7 @@ function executeMove(pieceIndex, toPos, color) {
   let opp = (color === "cones") ? spoolsPieces : conesPieces;
   let fromPos = own[pieceIndex];
   if (toPos === null) {
-    showTemporaryMessage("Illegal move: overshoot or skipping square 26!");
+    showTemporaryMessage("Illegal move: overshoot or skipping square 26, or path is blocked!");
     return false;
   }
   if (toPos < 30 && toPos !== 14 && own.includes(toPos)) {
@@ -479,7 +519,7 @@ function executeMove(pieceIndex, toPos, color) {
     opp[oppIdx] = fromPos;
   }
   own[pieceIndex] = toPos;
-  // Square 27 (Water Tile) rule:
+  // Special Rule for Square 27 (Water Tile):
   if (toPos === 27) {
     if (isOpponentProtectedAt15(color)) {
       showTemporaryMessage("Opponent has a protected pair on squares 15–16. Can't move there!");
@@ -569,7 +609,13 @@ function drawBoard() {
 }
 function getPieceCoords(color, pos) {
   if (pos >= 0 && pos < 30) {
-    let sqIdx = senetPath[pos];
+    let sqIdx = senetPath.indexOf(pos);
+    // If the piece's board square is not directly in the path (it should be),
+    // we search for it:
+    if (sqIdx === -1) {
+      // fallback: find first occurrence
+      sqIdx = senetPath.findIndex(s => s === pos);
+    }
     let sq = boardSquares[sqIdx];
     return { x: sq.x + sq.w/2, y: sq.y + sq.h/2 };
   }
@@ -642,13 +688,13 @@ document.querySelectorAll(".diceChoice").forEach(btn => {
     currentDiceRoll = val;
     diceRolled = true;
     customDiceDiv.style.display = "none";
-    addMoveToHistory(`${(currentTurn==="cones" ? "Cones" : "Spools")} rolled ${currentDiceRoll}`);
-    showTemporaryMessage(`${(currentTurn==="cones" ? "Cones" : "Spools")} rolled ${currentDiceRoll}`);
+    addMoveToHistory(`${(currentTurn === "cones" ? "Cones" : "Spools")} rolled ${currentDiceRoll}`);
+    showTemporaryMessage(`${(currentTurn === "cones" ? "Cones" : "Spools")} rolled ${currentDiceRoll}`);
     redrawPlayScreen();
     let opts = getMoveOptions(currentDiceRoll, currentTurn);
     if (opts.length === 0) {
       showTemporaryMessage("No moves. Passing turn...");
-      nextPlayer = (currentTurn==="cones") ? "spools" : "cones";
+      nextPlayer = (currentTurn === "cones") ? "spools" : "cones";
       diceRolled = false; currentDiceRoll = 0;
       endTurn(true);
     }
@@ -666,7 +712,7 @@ function handleBoardClick(e) {
   if (opts.length === 0) return;
   let rect = canvas.getBoundingClientRect();
   let mx = e.clientX - rect.left, my = e.clientY - rect.top;
-  let own = (currentTurn==="cones") ? conesPieces : spoolsPieces;
+  let own = (currentTurn === "cones") ? conesPieces : spoolsPieces;
   for (let i = 0; i < own.length; i++) {
     let pos = own[i];
     if (pos < 0 || pos === 30) continue;
@@ -680,7 +726,7 @@ function handleBoardClick(e) {
       }
       if (!executeMove(i, found.toPos, currentTurn)) return;
       redrawPlayScreen();
-      showTemporaryMessage(`${(currentTurn==="cones" ? "Cones" : "Spools")} moved a piece`);
+      showTemporaryMessage(`${(currentTurn === "cones" ? "Cones" : "Spools")} moved a piece`);
       endTurn(true);
       return;
     }
@@ -696,8 +742,8 @@ function aiAutoRoll() {
   if (!diceRolled) {
     currentDiceRoll = rollCustomDice();
     diceRolled = true;
-    addMoveToHistory(`${(currentTurn==="cones" ? "Cones" : "Spools")} rolled ${currentDiceRoll}`);
-    showTemporaryMessage(`${(currentTurn==="cones" ? "Cones" : "Spools")} rolled ${currentDiceRoll}`);
+    addMoveToHistory(`${(currentTurn === "cones" ? "Cones" : "Spools")} rolled ${currentDiceRoll}`);
+    showTemporaryMessage(`${(currentTurn === "cones" ? "Cones" : "Spools")} rolled ${currentDiceRoll}`);
     redrawPlayScreen();
     setTimeout(aiMakeMove, 2000);
   }
@@ -706,7 +752,7 @@ function aiMakeMove() {
   let opts = getMoveOptions(currentDiceRoll, currentTurn);
   if (opts.length === 0) {
     showTemporaryMessage("AI has no moves. Passing turn...");
-    nextPlayer = (currentTurn==="cones") ? "spools" : "cones";
+    nextPlayer = (currentTurn === "cones") ? "spools" : "cones";
     diceRolled = false; currentDiceRoll = 0;
     endTurn(false);
     return;
@@ -715,7 +761,7 @@ function aiMakeMove() {
   executeMove(pick.pieceIndex, pick.toPos, currentTurn);
   redrawPlayScreen();
   if (extraTurn) {
-    showTemporaryMessage(`${(currentTurn==="cones" ? "Cones" : "Spools")} goes again!`);
+    showTemporaryMessage(`${(currentTurn === "cones" ? "Cones" : "Spools")} goes again!`);
     diceRolled = false; currentDiceRoll = 0;
     aiAutoRoll();
   } else {
@@ -731,7 +777,7 @@ function endTurn(isHumanTurn) {
   let delay = isHumanTurn ? 1000 : 2000;
   setTimeout(() => {
     currentTurn = nextPlayer;
-    showTemporaryMessage(`${(currentTurn==="cones" ? "Cones" : "Spools")} Turn! Roll dice...`);
+    showTemporaryMessage(`${(currentTurn === "cones" ? "Cones" : "Spools")} Turn! Roll dice...`);
     redrawPlayScreen();
     if (currentTurn !== humanColor) {
       setTimeout(aiAutoRoll, 2000);
