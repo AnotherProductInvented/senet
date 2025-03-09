@@ -35,7 +35,7 @@
       flex-direction: column;
       align-items: center;
     }
-    /* Game container with single border */
+    /* Game container (single border) */
     #gameContainer {
       position: relative;
       width: 720px; /* Enough for a 600px board plus padding */
@@ -74,8 +74,7 @@
     }
     button {
       font-size: 18px;
-      margin: 10px;
-      padding: 10px 20px;
+      margin: 10px; padding: 10px 20px;
       cursor: pointer;
       font-family: "Papyrus", cursive, serif;
     }
@@ -120,8 +119,7 @@
     /* Temporary messages (2 seconds) */
     #diceMessageOverlay {
       position: absolute;
-      left: 50%;
-      top: 50%;
+      left: 50%; top: 50%;
       transform: translate(-50%, -50%);
       padding: 10px 20px;
       background: rgba(255,255,255,0.9);
@@ -135,16 +133,11 @@
     }
     /* Instructions navigation */
     #instructionsNav {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
+      display: flex; gap: 10px; margin-top: 10px;
     }
     #logo {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      max-width: 100px;
-      z-index: 2000;
+      position: fixed; bottom: 10px; right: 10px;
+      max-width: 100px; z-index: 2000;
     }
   </style>
 </head>
@@ -208,7 +201,7 @@
       <p>Press M to return to the Main Menu.</p>
     </div>
 
-    <!-- The Senet board canvas (3×10 => 600×180) -->
+    <!-- The Senet board canvas (600×180) -->
     <canvas id="gameCanvas" width="600" height="180"></canvas>
   </div>
 
@@ -223,23 +216,36 @@
 
 <script>
 /***********************************
- * 1) Canvas & Board
+ * 0) Load external images
+ * "cones.png" & "spools.png" must be in the same folder as this HTML file
+ ***********************************/
+const conesImg = new Image();
+conesImg.src = "cones.png"; // same folder
+const spoolsImg = new Image();
+spoolsImg.src = "spools.png"; // same folder
+
+// Inline boat icon with transparent background
+const boatIcon = new Image();
+boatIcon.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHBhdGggZD0iTTQsNDBMNjAsNDBMNTIsNjBMMCwxNjBaIiBmaWxsPSIjQjg0NTEzIi8+PHBvbHlnb24gcG9pbnRzPSIzMiw0IDMyLDQwIDE2LDQwIiBmaWxsPSIjZmZmZiIvPjxwb2x5Z29uIHBvaW50cz0iMzIsNCAzMiw0MCA0OCw0MCIgZmlsbD0iI2ZmZiIvPjxsaW5lIHgxPSIzMiIgeTE9IjQiIHgyPSIzMiIgeTI9IjQwIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==';
+
+/***********************************
+ * 1) Canvas & Board Setup
  ***********************************/
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const squareSize = 60;   // 60 px squares => 600x180
+const squareSize = 60; // 60 px squares => 600x180
 const rows = 3, cols = 10;
-const boardSquares = [];
-for (let r=0; r<rows; r++){
-  for (let c=0; c<cols; c++){
+let boardSquares = [];
+for (let r = 0; r < rows; r++){
+  for (let c = 0; c < cols; c++){
     boardSquares.push({ x: c*squareSize, y: r*squareSize, w: squareSize, h: squareSize });
   }
 }
-/* Serpentine path */
+/* Serpentine path for 30 squares */
 let senetPath = [];
-for(let i=0;i<cols;i++){ senetPath.push(i); }
-for(let i=2*cols-1;i>=cols;i--){ senetPath.push(i); }
-for(let i=2*cols;i<3*cols;i++){ senetPath.push(i); }
+for (let i=0;i<cols;i++){ senetPath.push(i); }
+for (let i=2*cols-1;i>=cols;i--){ senetPath.push(i); }
+for (let i=2*cols;i<3*cols;i++){ senetPath.push(i); }
 
 /***********************************
  * 2) Game State
@@ -269,24 +275,44 @@ const gameOverText = document.getElementById("gameOverText");
 const diceMessageOverlay = document.getElementById("diceMessageOverlay");
 const customDiceDiv = document.getElementById("customDice");
 
-/* 4) Instructions with 3 pages */
+/***********************************
+ * 4) Instructions (3 pages)
+ ***********************************/
 const instructionsPages = [
-  `Each player has 5 pawns. The dice shows 1-5.
-Player 1 (Cones) and Player 2 (Spools) are chosen by you.
-Cones always start first.
-Take turns rolling and moving one pawn forward.
-If you land on your own pawn, it's illegal.
-If you land on an opponent's pawn (not protected), you swap.`,
-  `Special squares:
-• Square 15: Has a boat icon; safe zone (stacking allowed).
-• Square 26: Must be landed on exactly before exiting; marked in green with a golden circle.
-• Square 27: Water square – if you land here, your pawn goes back to square 15.`,
-  `Squares 28 and 29: Green safe squares.
-Square 30: Must be landed on exactly to remove your pawn; overshooting is illegal.
-If the opponent has a protected pair on squares 15–16, you can't land on 27.
-Protection: Two adjacent pawns are safe; three or more form a blockade.
-First to remove all pawns wins.
-Press M to return to the Main Menu.`
+`General Gameplay:
+
+Each player has 5 pawns: Cones (Player 1) and Spools (Player 2).
+Cones always go first.
+The dice roll can be 1, 2, 3, 4, or 5.
+Players take turns rolling the dice and moving one piece forward by the number rolled.
+
+Illegal Moves:
+• You cannot land on your own piece.
+• You cannot move if no legal moves are available.
+• Overshooting square 30 is illegal; the pawn bounces back to (30 - dice roll).`,
+`Capturing & Swapping:
+
+• If you land on a square occupied by your opponent’s unprotected pawn, you swap places.
+• Protected pawns (two in a row) cannot be captured.
+• Blockades (three or more in a row) prevent all movement past them.`,
+`Special Squares:
+
+• Square 15 (Boat Icon) → Safe Zone (stacking allowed, cannot be captured).
+• Square 26 (Golden Circle, Green Tile) → Must be landed on exactly before exiting.
+• Square 27 (Water Tile) → Landing here sends your pawn back to Square 15.
+   - If Square 15 is empty, your pawn moves there.
+   - If Square 15 is occupied by your own pawn, you stack.
+   - If Square 15 is occupied by an opponent’s pawn, you swap.
+   - Exception: If the opponent has a protected pair on squares 15–16, you cannot move there.
+• Squares 28 & 29 (Green Tiles) → Safe Zones (cannot be captured).
+• Square 30 (Exit Tile) → Must land exactly to remove the piece from the board.
+
+Winning:
+The first player to remove all 5 pawns wins.
+
+Controls:
+Press "M" to return to the Main Menu.
+`
 ];
 let currentInstructionsPage=0;
 const instructionsContent = document.getElementById("instructionsContent");
@@ -311,22 +337,11 @@ instructionsNextBtn.onclick=()=>{
 };
 
 /***********************************
- * 5) Load external images for Cones & Spools
- * Must be in same folder if you want to avoid CORS on GitHub Pages
- ***********************************/
-const conesImg = new Image();
-conesImg.src = "cones.png";  // same folder
-const spoolsImg = new Image();
-spoolsImg.src = "spools.png";  // same folder
-
-// boat icon is inline
-const boatIcon = new Image();
-boatIcon.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHBhdGggZD0iTTQsNDBMNjAsNDBMNTIsNjBMMCwxNjBaIiBmaWxsPSIjQjg0NTEzIi8+PHBvbHlnb24gcG9pbnRzPSIzMiw0IDMyLDQwIDE2LDQwIiBmaWxsPSIjZmZmZiIvPjxwb2x5Z29uIHBvaW50cz0iMzIsNCAzMiw0MCA0OCw0MCIgZmlsbD0iI2ZmZiIvPjxsaW5lIHgxPSIzMiIgeTE9IjQiIHgyPSIzMiIgeTI9IjQwIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==';
-
-/***********************************
- * 6) Initialization
+ * 5) Initialization
  ***********************************/
 function initPieces(){
+  // Cones => squares 1,3,5,7,9 => indices 0,2,4,6,8
+  // Spools => squares 2,4,6,8,10 => indices 1,3,5,7,9
   conesPieces=[0,2,4,6,8];
   spoolsPieces=[1,3,5,7,9];
   lastMove=null;
@@ -335,7 +350,7 @@ function initPieces(){
 }
 
 /***********************************
- * 7) Dice
+ * 6) Dice
  ***********************************/
 const allowedDice=[1,2,3,4,5];
 function rollCustomDice(){
@@ -344,17 +359,20 @@ function rollCustomDice(){
 }
 
 /***********************************
- * 8) Movement & Basic Rules
+ * 7) Movement & Basic Rules
  ***********************************/
-// overshoot => illegal
-// skipping #26 => illegal
+// If overshoot => bounce: newPos=30 - diceValue
 function getValidMove(piecePos,diceValue){
   if(diceValue===0)return null;
   let newPos=piecePos+diceValue;
+  // cannot skip #26
   if(piecePos<26 && newPos>26 && newPos!==26){
     return null;
   }
-  if(newPos>30)return null;
+  if(newPos>30){
+    newPos=30-diceValue;
+    if(newPos<0)return null;
+  }
   return newPos;
 }
 function canLandOn(pos,color){
@@ -387,7 +405,7 @@ function isProtected(pos,color){
 }
 
 /***********************************
- * 9) Execute Move
+ * 8) Execute Move
  ***********************************/
 function executeMove(pieceIndex,toPos,color){
   let own=(color==="cones")?conesPieces:spoolsPieces;
@@ -410,6 +428,7 @@ function executeMove(pieceIndex,toPos,color){
     opp[oppIdx]=fromPos;
   }
   own[pieceIndex]=toPos;
+  // Square 27 => water => back to #15
   if(toPos===27){
     if(isOpponentProtectedAt15(color)){
       showTemporaryMessage("Opponent has a protected pair at #15-16. Can't land!");
@@ -436,7 +455,7 @@ function executeMove(pieceIndex,toPos,color){
   nextPlayer=(color==="cones")?"spools":"cones";
   let finished=own.filter(p=>p===30).length;
   if(finished===NUM_PIECES){
-    gameOverText.textContent=(color===humanColor)?"You Win!":"You Lose!";
+    gameOverText.textContent=(color===humanColor)?"You Win!" : "You Lose!";
     addMoveToHistory(`${(color==="cones"?"Cones":"Spools")} wins!`);
     showGameOver();
     return true;
@@ -445,7 +464,7 @@ function executeMove(pieceIndex,toPos,color){
 }
 
 /***********************************
- * 10) Drawing
+ * 9) Drawing
  ***********************************/
 function drawBoard(){
   ctx.clearRect(0,0,600,180);
@@ -502,6 +521,7 @@ function getPieceCoords(color,pos){
     return { x: sq.x+sq.w/2, y: sq.y+sq.h/2 };
   }
   if(pos===30){
+    // final exit
     return { x: boardSquares[senetPath[senetPath.length-1]].x+90, y:(color==="cones")?60:120 };
   }
   return { x:0,y:0 };
@@ -526,7 +546,7 @@ function redrawPlayScreen(){
 }
 
 /***********************************
- * 11) Temporary Messages (2 sec)
+ * 10) Temporary Messages (2 sec)
  ***********************************/
 function showTemporaryMessage(msg){
   diceMessageOverlay.textContent=msg;
@@ -535,7 +555,7 @@ function showTemporaryMessage(msg){
 }
 
 /***********************************
- * 12) Move History
+ * 11) Move History
  ***********************************/
 let moveHistoryDiv=document.getElementById("moveHistory");
 function addMoveToHistory(txt){
@@ -550,7 +570,7 @@ function updateMoveHistoryDisplay(){
 }
 
 /***********************************
- * 13) Human Turn: Custom Dice
+ * 12) Human Turn: Custom Dice
  ***********************************/
 function humanRollDice(){
   if(gameState!=="playing")return;
@@ -578,7 +598,7 @@ document.querySelectorAll(".diceChoice").forEach(btn=>{
 });
 
 /***********************************
- * 14) Human Clicking the Board
+ * 13) Human Clicking the Board
  ***********************************/
 function handleBoardClick(e){
   if(gameState!=="playing")return;
@@ -610,7 +630,7 @@ function handleBoardClick(e){
 }
 
 /***********************************
- * 15) AI Turn
+ * 14) AI Turn
  ***********************************/
 function aiAutoRoll(){
   if(gameState!=="playing")return;
@@ -646,7 +666,7 @@ function aiMakeMove(){
 }
 
 /***********************************
- * 16) Turn End
+ * 15) Turn End
  ***********************************/
 function endTurn(isHumanTurn){
   diceRolled=false; currentDiceRoll=0;
@@ -662,7 +682,7 @@ function endTurn(isHumanTurn){
 }
 
 /***********************************
- * 17) Main Loop
+ * 16) Main Loop
  ***********************************/
 function mainLoop(){
   if(gameState==="playing"){
@@ -673,7 +693,7 @@ function mainLoop(){
 }
 
 /***********************************
- * 18) Overlays & Navigation
+ * 17) Overlays & Navigation
  ***********************************/
 function hideAllScreens(){
   menuScreen.style.display="none";
@@ -728,7 +748,7 @@ function showGameOver(){
 }
 
 /***********************************
- * 19) Buttons & Keyboard
+ * 18) Buttons & Keyboard
  ***********************************/
 document.getElementById("conesBtn").onclick=()=>{
   humanColor="cones";
@@ -779,4 +799,3 @@ window.addEventListener("load",startAll);
 </script>
 </body>
 </html>
-
