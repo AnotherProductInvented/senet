@@ -296,7 +296,7 @@ const customDiceDiv = document.getElementById("customDice");
   4) Instructions (4 Pages)
 -----------------------------------------------------------*/
 const instructionsPages = [
-`Page 1 – General Gameplay:
+  `Page 1 – General Gameplay:
 
 Each player has 5 pieces: Cones (Player 1) and Spools (Player 2).
 Cones always go first.
@@ -307,24 +307,32 @@ Illegal Moves:
 • You cannot land on your own piece.
 • You cannot move if no legal moves are available.
 • Overshooting square 30 is illegal; the piece bounces back to (30 - dice roll).`,
-`Page 2 – Capturing & Swapping:
+
+  `Page 2 – Capturing & Swapping:
 
 • If you land on a square occupied by your opponent’s unprotected piece, you swap places.
 • Protected pieces (two in a row) cannot be captured.
 • Blockades: If three or more pieces of the same color occupy consecutive squares along the movement path, that blockade prevents any piece from moving past those squares.`,
-`Page 3 – Special Squares (Part 1):
 
-• Square 15 (Boat Icon) → Safe Zone (stacking allowed; cannot be captured).
-• Square 26 (Golden Circle, Green Tile) → You must land exactly on this square; if you’re before square 26, you cannot overshoot it.
-• Square 27 (Water Tile) → When a piece lands here, it is immediately moved to square 15 (index 14):
-   - If square 15 is empty, the piece moves there.
-   - If square 15 is occupied by your own piece, your piece stacks.
-   - If square 15 is occupied by an opponent’s piece, you swap (your piece goes to square 15 and the opponent’s piece moves to 27) unless that opponent’s piece is protected (by a pair on squares 14–15 or 15–16), in which case the move is illegal.
-`,
-`Page 4 – Special Squares (Part 2) & Winning:
+  `Page 3 – Special Squares (Part 1):
 
-• Squares 28 & 29 (Green Tiles) → Safe Zones (cannot be captured).
-• Square 30 (Exit Tile) → A piece must land exactly on square 30; when it does, it is removed from the board.
+• Square 15 (Boat Icon): 
+   - Safe Zone: Pieces here are safe; stacking is allowed and they cannot be captured.
+   
+• Square 26 (Golden Circle, Green Tile):
+   - Exact Landing Required: If a piece is before square 26, you must roll exactly to land on it.
+     Any dice roll that would move the piece past square 26 is rejected.
+   
+• Square 27 (Water Tile):
+   - When a piece lands on square 27, it is immediately moved to square 15 (index 14) following these rules:
+       • If square 15 is empty, the piece moves there.
+       • If square 15 is occupied by your own piece, the pieces stack.
+       • If square 15 is occupied by an opponent’s piece, a swap occurs—your piece moves to square 15 and the opponent’s piece moves to square 27—unless that opponent’s piece is protected by being part of a contiguous pair on squares 14–15 or 15–16, in which case the move is illegal.`,
+
+  `Page 4 – Special Squares (Part 2) & Winning:
+
+• Squares 28 & 29 (Green Tiles): Safe Zones (pieces here cannot be captured).
+• Square 30 (Exit Tile): A piece must land exactly on square 30; when it does, it is removed from the board.
 • Winning: The first player to remove all 5 pieces wins.
 If no legal move is available, your turn is forfeited.
 
@@ -438,11 +446,12 @@ function isPathBlocked(piecePos, targetPos) {
 function getValidMove(piecePos, diceValue) {
   if (diceValue === 0) return null;
   let newPos = piecePos + diceValue;
-  // Rule 26: if before square 26, must land exactly on or before 26.
+  // Rule 26: If the piece is before square 26, any dice roll that would take it past square 26 is rejected.
+  // For example, a piece on square 25 must roll exactly 1 to move to square 26.
   if (piecePos < 26 && newPos > 26) return null;
-  // Rule 30: Must land exactly on square 30 (overshooting is illegal).
+  // Rule 30: A move is only legal if it lands exactly on square 30.
   if (newPos > 30) return null;
-  // Check for blockade along the path.
+  // Check for blockade along the movement path.
   if (isPathBlocked(piecePos, newPos)) return null;
   return newPos;
 }
@@ -497,7 +506,7 @@ function executeMove(pieceIndex, toPos, color) {
     return false;
   }
 
-  // If landing on an opponent's piece, swap (unless protected).
+  // If landing on an opponent's piece, swap (unless the opponent is protected).
   if (toPos < 30 && opp.includes(toPos)) {
     if (isProtected(toPos, color)) {
       showTemporaryMessage("Illegal: opponent's piece is protected!");
@@ -510,7 +519,7 @@ function executeMove(pieceIndex, toPos, color) {
   // Set the new position.
   own[pieceIndex] = toPos;
 
-  // --- Rule 27: Water Tile ---
+  // Rule 27: Water Tile - when landing on square 27.
   if (toPos === 27) {
     if (isOpponentProtectedAt15(color)) {
       showTemporaryMessage("Illegal: opponent's protected pair on square 15 prevents move from 27!");
@@ -532,7 +541,7 @@ function executeMove(pieceIndex, toPos, color) {
     }
   }
 
-  // --- Rule 30: Exit Tile ---
+  // Rule 30: Exit Tile - landing exactly on square 30.
   if (toPos === 30) {
     addMoveToHistory(`${(color==="cones"?"Cones":"Spools")} removed a piece (square 30)`);
   } else {
